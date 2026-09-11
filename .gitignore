@@ -1,0 +1,58 @@
+# Local Python/runtime state
+.venv/
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+
+# Downloaded upstream source and generated release files
+/holoocean/
+/downloads/
+/release/
+*.zip
+*.tar.gz
+
+# Generated datasets and Web UI state
+/data/*
+!/data/objects/
+/data/objects/*
+!/data/objects/asset_database.csv
+!/data/objects/catalog.json
+!/data/objects/declared.json
+!/data/objects/local_assets.json
+!/data/scenes/
+/data/scenes/*
+/logs/
+
+# Research, build and side-project material excluded from the public repository
+/ai_detection/
+/baseline/
+/build/
+/docs/
+/style_transfer/
+/vendor/
+/wreckdet/
+/rebuild*.log
+
+# Only the runtime Python pipeline is part of the public source package
+/scripts/*
+!/scripts/acquire_sss.py
+!/scripts/large_dataset.py
+!/scripts/make_terrain.py
+!/scripts/object_catalog.py
+!/scripts/preview_scene.py
+!/scripts/project_paths.py
+!/scripts/scene_config.json
+!/scripts/scene_manifest.py
+!/scripts/scene_runtime.py
+!/scripts/sss_common.py
+!/scripts/sss_config.json
+
+# Only the client compatibility patch is required by release users
+/patches/*
+!/patches/holoocean-client-2.4.0.diff
+
+# Editor/assistant state
+/.claude/
+/.idea/
+/.vscode/

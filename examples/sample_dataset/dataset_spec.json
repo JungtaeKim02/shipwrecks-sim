@@ -1,0 +1,27 @@
+{
+  "name": "example_sss",
+  "n": 1,
+  "seed": 20260911,
+  "platform": "ideal",
+  "track_length_fractions": [
+    0.25
+  ],
+  "floor_clutter_pct": 0,
+  "wreck_pct": 25,
+  "wreck_tilt_deg": 35,
+  "depression_deg": 27,
+  "noise_level": 1,
+  "speckle_strength": 1,
+  "texture_cv": 0,
+  "outputs": {
+    "waterfall_png": true,
+    "true_aspect_png": false,
+    "raw_numpy": false,
+    "processed_numpy": true,
+    "mask": true,
+    "bbox": true,
+    "bbox_overlay": true,
+    "scene_preview": true,
+    "export_zip": false
+  }
+}

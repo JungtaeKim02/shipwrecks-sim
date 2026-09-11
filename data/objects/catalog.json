@@ -1,0 +1,2647 @@
+{
+  "version": 2,
+  "generated": "2026-09-02T20:30:31",
+  "size_sources": {
+    "csv": "data/objects/asset_database.csv",
+    "local": "data/objects/local_assets.json"
+  },
+  "_measured_note": "measured_* 필드는 scripts/measure_assets.py 가 UE 임포트 로그에서 재서 병합한다. 카탈로그를 다시 만들어도 이어받으므로 사라지지 않는다.",
+  "objects": [
+    {
+      "id": "anthropogenic_debris/Anchor",
+      "category": "anthropogenic_debris",
+      "name": "Anchor",
+      "source": "data/objects/anthropogenic_debris/original/Anchor.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/anthropogenic_debris/Anchor",
+      "tags": [
+        "sssmat:M_Metal_Steel"
+      ],
+      "material": "M_Metal_Steel",
+      "target_size_m": 1.8,
+      "bbox_real_m": [
+        1.8,
+        1.15,
+        0.45
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "Anchor",
+      "name_en": "Marine Anchor",
+      "name_ko": "선박용 앵커",
+      "preview_files": [
+        "Anchor.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/Anchor.png"
+      ],
+      "measured_bbox_m": [
+        0.9589,
+        1.5087,
+        0.7524
+      ],
+      "measured_max_m": 1.5087,
+      "triangles": 3362,
+      "normalized_source": false,
+      "measured_from": "data/objects/anthropogenic_debris/original/Anchor.fbx"
+    },
+    {
+      "id": "anthropogenic_debris/brick_piles",
+      "category": "anthropogenic_debris",
+      "name": "brick_piles",
+      "source": "data/objects/anthropogenic_debris/original/brick_piles.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/anthropogenic_debris/brick_piles",
+      "tags": [
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "target_size_m": 2.4,
+      "bbox_real_m": [
+        2.4,
+        0.85,
+        0.28
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "brick_piles",
+      "name_en": "Brick Pile",
+      "name_ko": "벽돌 더미",
+      "preview_files": [
+        "brick_piles.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/brick_piles.png"
+      ],
+      "held_reason": "벽돌 = 소성 점토. ceramics 와 같은 공백 — materials.csv 에 소성 점토 항목이 없다."
+    },
+    {
+      "id": "anthropogenic_debris/construction_pile",
+      "category": "anthropogenic_debris",
+      "name": "construction_pile",
+      "source": "data/objects/anthropogenic_debris/original/construction_pile.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/anthropogenic_debris/construction_pile",
+      "tags": [
+        "sssmat:M_Pier_Concrete_01"
+      ],
+      "material": "M_Pier_Concrete_01",
+      "target_size_m": 3.0,
+      "bbox_real_m": [
+        3.0,
+        2.2,
+        0.8
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "construction_pile",
+      "name_en": "Construction Rubble Pile",
+      "name_ko": "건설 잔해 더미",
+      "preview_files": [
+        "construction_pile.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/construction_pile.png"
+      ],
+      "measured_bbox_m": [
+        0.1465,
+        0.1521,
+        0.1828
+      ],
+      "measured_max_m": 0.1828,
+      "triangles": 59999,
+      "normalized_source": false,
+      "measured_from": "data/objects/anthropogenic_debris/ue_ready/construction_pile.obj"
+    },
+    {
+      "id": "anthropogenic_debris/dirt_brick_pile",
+      "category": "anthropogenic_debris",
+      "name": "dirt_brick_pile",
+      "source": "data/objects/anthropogenic_debris/original/dirt_brick_pile.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/anthropogenic_debris/dirt_brick_pile",
+      "tags": [
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "target_size_m": 2.8,
+      "bbox_real_m": [
+        2.8,
+        2.0,
+        0.75
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "dirt_brick_pile",
+      "name_en": "Dirt and Brick Rubble Pile",
+      "name_ko": "흙과 벽돌 혼합 잔해 더미",
+      "preview_files": [
+        "dirt_brick_pile.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/dirt_brick_pile.png"
+      ],
+      "held_reason": "흙+벽돌 혼합. 소성 점토 임피던스 미확보에 더해 혼합비도 근거가 없다."
+    },
+    {
+      "id": "anthropogenic_debris/tires2",
+      "category": "anthropogenic_debris",
+      "name": "tires2",
+      "source": "data/objects/anthropogenic_debris/original/tires2.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/anthropogenic_debris/tires2",
+      "tags": [
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "target_size_m": 2.1,
+      "bbox_real_m": [
+        2.1,
+        1.5,
+        0.55
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "tires2",
+      "name_en": "Discarded Tire Pile",
+      "name_ko": "폐타이어 더미",
+      "preview_files": [
+        "tires2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/tires2.png"
+      ],
+      "held_reason": "폐타이어 = 고무. materials.csv 에 고무 항목이 없다."
+    },
+    {
+      "id": "anthropogenic_debris/wood_plank_rotten",
+      "category": "anthropogenic_debris",
+      "name": "wood_plank_rotten",
+      "source": "data/objects/anthropogenic_debris/original/wood_plank_rotten.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/anthropogenic_debris/wood_plank_rotten",
+      "tags": [
+        "sssmat:M_Wood_Pine"
+      ],
+      "material": "M_Wood_Pine",
+      "target_size_m": 2.2,
+      "bbox_real_m": [
+        2.2,
+        0.25,
+        0.065
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "wood_plank_rotten",
+      "name_en": "Rotten Wooden Plank",
+      "name_ko": "부식·부패 목재 판재",
+      "preview_files": [
+        "wood_plank_rotten.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/wood_plank_rotten.png"
+      ],
+      "measured_bbox_m": [
+        0.0013,
+        0.0008,
+        0.0049
+      ],
+      "measured_max_m": 0.0049,
+      "triangles": 86379,
+      "normalized_source": false,
+      "measured_from": "data/objects/anthropogenic_debris/ue_ready/wood_plank_rotten.obj"
+    },
+    {
+      "id": "archaeological_ship/dallido_ship_reconstructed",
+      "category": "archaeological_ship",
+      "name": "dallido_ship_reconstructed",
+      "source": "data/objects/archaeological_ship/original/dallido_ship_reconstructed.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/archaeological_ship/dallido_ship_reconstructed",
+      "tags": [
+        "wreck",
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "held_reason": "3D 파일 미도착"
+    },
+    {
+      "id": "archaeological_ship/dallido_ship_reconstruction",
+      "category": "archaeological_ship",
+      "name": "dallido_ship_reconstruction",
+      "source": "data/objects/archaeological_ship/original/dallido_ship_reconstruction.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/archaeological_ship/dallido_ship_reconstruction",
+      "tags": [
+        "wreck",
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "target_size_m": 12.0,
+      "bbox_real_m": [
+        12.0,
+        3.6,
+        1.6
+      ],
+      "size_source": "National Research Institute of Maritime Heritage: Dallido Shipwreck",
+      "size_source_url": "https://www.seamuse.go.kr/research/shipwreck_research/info/82",
+      "size_source_page": "research record 82",
+      "size_confidence": "Medium-High",
+      "size_status": "Reconstruction dimensions",
+      "base_object_id": "dallido",
+      "name_en": "Dallido Shipwreck",
+      "name_ko": "달리도선",
+      "preview_files": [
+        "dallido_ship_reconstructed.jpg"
+      ],
+      "preview_paths": [
+        "data/objects/previews/dallido_ship_reconstructed.jpg"
+      ]
+    },
+    {
+      "id": "archaeological_ship/dallido_ship_remaining_hull",
+      "category": "archaeological_ship",
+      "name": "dallido_ship_remaining_hull",
+      "source": "data/objects/archaeological_ship/original/dallido_ship_remaining_hull.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/archaeological_ship/dallido_ship_remaining_hull",
+      "tags": [
+        "wreck",
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "target_size_m": 10.5,
+      "bbox_real_m": [
+        10.5,
+        2.72,
+        0.8
+      ],
+      "size_source": "National Research Institute of Maritime Heritage: Dallido Shipwreck",
+      "size_source_url": "https://www.seamuse.go.kr/research/shipwreck_research/info/82",
+      "size_source_page": "research record 82",
+      "size_confidence": "High",
+      "size_status": "Reported/metadata dimensions",
+      "base_object_id": "dallido",
+      "name_en": "Dallido Shipwreck",
+      "name_ko": "달리도선",
+      "preview_files": [
+        "dallido_ship_remaining_hull.JPG"
+      ],
+      "preview_paths": [
+        "data/objects/previews/dallido_ship_remaining_hull.JPG"
+      ],
+      "measured_bbox_m": [
+        1.0473,
+        0.7664,
+        1.9555
+      ],
+      "measured_max_m": 1.9555,
+      "triangles": 20000,
+      "normalized_source": true,
+      "measured_from": "data/objects/archaeological_ship/original/dallido_ship_remaining_hull.fbx"
+    },
+    {
+      "id": "archaeological_ship/mado_1_ship_reconstructed",
+      "category": "archaeological_ship",
+      "name": "mado_1_ship_reconstructed",
+      "source": "data/objects/archaeological_ship/original/mado_1_ship_reconstructed.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/archaeological_ship/mado_1_ship_reconstructed",
+      "tags": [
+        "wreck",
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "target_size_m": 15.5,
+      "bbox_real_m": [
+        15.5,
+        6.5,
+        3.2
+      ],
+      "size_source": "National Research Institute of Maritime Heritage: Mado No. 1",
+      "size_source_url": "https://www.seamuse.go.kr/research/shipwreck_research/info/90",
+      "size_source_page": "research record 90",
+      "size_confidence": "Medium-High",
+      "size_status": "Reconstruction dimensions",
+      "base_object_id": "mado1",
+      "name_en": "Mado No. 1 Shipwreck",
+      "name_ko": "마도1호선",
+      "preview_files": [
+        "mado_1_ship_reconstructed.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado_1_ship_reconstructed.png"
+      ],
+      "measured_bbox_m": [
+        1.9622,
+        1.741,
+        0.6357
+      ],
+      "measured_max_m": 1.9622,
+      "triangles": 20000,
+      "normalized_source": true,
+      "measured_from": "data/objects/archaeological_ship/original/mado_1_ship_reconstructed.fbx"
+    },
+    {
+      "id": "archaeological_ship/mado_1_ship_remaining_hull",
+      "category": "archaeological_ship",
+      "name": "mado_1_ship_remaining_hull",
+      "source": "data/objects/archaeological_ship/original/mado_1_ship_remaining_hull.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/archaeological_ship/mado_1_ship_remaining_hull",
+      "tags": [
+        "wreck",
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "target_size_m": 10.8,
+      "bbox_real_m": [
+        10.8,
+        3.7,
+        1.82
+      ],
+      "size_source": "National Research Institute of Maritime Heritage: Mado No. 1",
+      "size_source_url": "https://www.seamuse.go.kr/research/shipwreck_research/info/90",
+      "size_source_page": "research record 90",
+      "size_confidence": "Medium",
+      "size_status": "Mixed reported and derived dimensions",
+      "base_object_id": "mado1",
+      "name_en": "Mado No. 1 Shipwreck",
+      "name_ko": "마도1호선",
+      "preview_files": [
+        "mado_1_ship_remaining_hull.jpg"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado_1_ship_remaining_hull.jpg"
+      ],
+      "measured_bbox_m": [
+        1.5237,
+        1.5033,
+        1.9505
+      ],
+      "measured_max_m": 1.9505,
+      "triangles": 40000,
+      "normalized_source": true,
+      "measured_from": "data/objects/archaeological_ship/original/mado_1_ship_remaining_hull.fbx"
+    },
+    {
+      "id": "archaeological_ship/sibidongpado_ship_reconstructed",
+      "category": "archaeological_ship",
+      "name": "sibidongpado_ship_reconstructed",
+      "source": "data/objects/archaeological_ship/original/sibidongpado_ship_reconstructed.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/archaeological_ship/sibidongpado_ship_reconstructed",
+      "tags": [
+        "wreck",
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "target_size_m": 14.5,
+      "bbox_real_m": [
+        14.5,
+        5.21,
+        2.08
+      ],
+      "size_source": "National Research Institute of Maritime Heritage: Sibidongpado Shipwreck",
+      "size_source_url": "https://www.seamuse.go.kr/research/shipwreck_research/info/91",
+      "size_source_page": "research record 91",
+      "size_confidence": "Medium",
+      "size_status": "Estimated reconstruction dimensions",
+      "base_object_id": "sibidongpado",
+      "name_en": "Sibidongpado Shipwreck",
+      "name_ko": "십이동파도선",
+      "preview_files": [
+        "sibidongpado_ship_reconstructed.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/sibidongpado_ship_reconstructed.png"
+      ],
+      "measured_bbox_m": [
+        1.9585,
+        0.9109,
+        0.8575
+      ],
+      "measured_max_m": 1.9585,
+      "triangles": 20000,
+      "normalized_source": true,
+      "measured_from": "data/objects/archaeological_ship/original/sibidongpado_ship_reconstructed.fbx"
+    },
+    {
+      "id": "archaeological_ship/sibidongpado_ship_remaining_hull",
+      "category": "archaeological_ship",
+      "name": "sibidongpado_ship_remaining_hull",
+      "source": "data/objects/archaeological_ship/original/sibidongpado_ship_remaining_hull.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/archaeological_ship/sibidongpado_ship_remaining_hull",
+      "tags": [
+        "wreck",
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "target_size_m": 7.0,
+      "bbox_real_m": [
+        7.0,
+        2.7,
+        1.08
+      ],
+      "size_source": "National Research Institute of Maritime Heritage: Sibidongpado Shipwreck",
+      "size_source_url": "https://www.seamuse.go.kr/research/shipwreck_research/info/91",
+      "size_source_page": "research record 91",
+      "size_confidence": "Medium",
+      "size_status": "Mixed reported and derived dimensions",
+      "base_object_id": "sibidongpado",
+      "name_en": "Sibidongpado Shipwreck",
+      "name_ko": "십이동파도선",
+      "preview_files": [
+        "sibidongpado_ship_remaining_hull.jpg"
+      ],
+      "preview_paths": [
+        "data/objects/previews/sibidongpado_ship_remaining_hull.jpg"
+      ],
+      "measured_bbox_m": [
+        1.9603,
+        0.1831,
+        1.0704
+      ],
+      "measured_max_m": 1.9603,
+      "triangles": 20000,
+      "normalized_source": true,
+      "measured_from": "data/objects/archaeological_ship/original/sibidongpado_ship_remaining_hull.fbx"
+    },
+    {
+      "id": "artificial_structure/artificial_reef",
+      "category": "artificial_structure",
+      "name": "artificial_reef",
+      "source": "data/objects/artificial_structure/original/artificial_reef.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/artificial_structure/artificial_reef",
+      "tags": [
+        "sssmat:M_Pier_Concrete_01"
+      ],
+      "material": "M_Pier_Concrete_01",
+      "target_size_m": 3.0,
+      "bbox_real_m": [
+        3.0,
+        2.5,
+        1.8
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "artificial_reef",
+      "name_en": "Artificial Reef",
+      "name_ko": "인공어초",
+      "preview_files": [
+        "artificial_reefs.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/artificial_reefs.png"
+      ],
+      "measured_bbox_m": [
+        0.1454,
+        0.1254,
+        0.0457
+      ],
+      "measured_max_m": 0.1454,
+      "triangles": 59999,
+      "normalized_source": false,
+      "measured_from": "data/objects/artificial_structure/ue_ready/artificial_reef.obj"
+    },
+    {
+      "id": "biological_clutter/Dead_coral1",
+      "category": "biological_clutter",
+      "name": "Dead_coral1",
+      "source": "data/objects/biological_clutter/original/Dead_coral1.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/biological_clutter/Dead_coral1",
+      "tags": [
+        "sssmat:M_Coralline"
+      ],
+      "material": "M_Coralline",
+      "target_size_m": 0.9,
+      "bbox_real_m": [
+        0.9,
+        0.65,
+        0.35
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Low-Medium",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "Dead_coral1",
+      "name_en": "Dead Coral Skeleton",
+      "name_ko": "죽은 산호 골격",
+      "preview_files": [
+        "Dead_coral1.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/Dead_coral1.png"
+      ],
+      "measured_bbox_m": [
+        1.66,
+        0.8277,
+        1.804
+      ],
+      "measured_max_m": 1.804,
+      "triangles": 59999,
+      "normalized_source": false,
+      "measured_from": "data/objects/biological_clutter/ue_ready/Dead_coral1.obj"
+    },
+    {
+      "id": "biological_clutter/coral",
+      "category": "biological_clutter",
+      "name": "coral",
+      "source": "data/objects/biological_clutter/original/coral.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/biological_clutter/coral",
+      "tags": [
+        "sssmat:M_Coralline"
+      ],
+      "material": "M_Coralline",
+      "target_size_m": 0.45,
+      "bbox_real_m": [
+        0.45,
+        0.38,
+        0.32
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Low-Medium",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "coral",
+      "name_en": "Coral Colony 1",
+      "name_ko": "산호 군체",
+      "preview_files": [
+        "coral.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/coral.png"
+      ],
+      "measured_bbox_m": [
+        0.6976,
+        0.5345,
+        0.4816
+      ],
+      "measured_max_m": 0.6976,
+      "triangles": 60000,
+      "normalized_source": false,
+      "measured_from": "data/objects/biological_clutter/ue_ready/coral.obj"
+    },
+    {
+      "id": "biological_clutter/coral2",
+      "category": "biological_clutter",
+      "name": "coral2",
+      "source": "data/objects/biological_clutter/original/coral2.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/biological_clutter/coral2",
+      "tags": [
+        "sssmat:M_Coralline"
+      ],
+      "material": "M_Coralline",
+      "target_size_m": 0.7,
+      "bbox_real_m": [
+        0.7,
+        0.55,
+        0.45
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Low-Medium",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "coral2",
+      "name_en": "Coral Colony 2",
+      "name_ko": "산호 군체",
+      "preview_files": [
+        "coral2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/coral2.png"
+      ],
+      "measured_bbox_m": [
+        0.6608,
+        0.6396,
+        0.6772
+      ],
+      "measured_max_m": 0.6772,
+      "triangles": 60000,
+      "normalized_source": false,
+      "measured_from": "data/objects/biological_clutter/ue_ready/coral2.obj"
+    },
+    {
+      "id": "biological_clutter/coral3",
+      "category": "biological_clutter",
+      "name": "coral3",
+      "source": "data/objects/biological_clutter/original/coral3.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/biological_clutter/coral3",
+      "tags": [
+        "sssmat:M_Coralline"
+      ],
+      "material": "M_Coralline",
+      "target_size_m": 1.0,
+      "bbox_real_m": [
+        1.0,
+        0.75,
+        0.6
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Low-Medium",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "coral3",
+      "name_en": "Coral Colony 3",
+      "name_ko": "산호 군체",
+      "preview_files": [
+        "coral3.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/coral3.png"
+      ],
+      "measured_bbox_m": [
+        1.1581,
+        0.9036,
+        0.9415
+      ],
+      "measured_max_m": 1.1581,
+      "triangles": 60000,
+      "normalized_source": false,
+      "measured_from": "data/objects/biological_clutter/ue_ready/coral3.obj"
+    },
+    {
+      "id": "biological_clutter/coral_reef1",
+      "category": "biological_clutter",
+      "name": "coral_reef1",
+      "source": "data/objects/biological_clutter/original/coral_reef1.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/biological_clutter/coral_reef1",
+      "tags": [
+        "sssmat:M_Coralline"
+      ],
+      "material": "M_Coralline",
+      "target_size_m": 1.8,
+      "bbox_real_m": [
+        1.8,
+        1.4,
+        0.65
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Low-Medium",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "coral_reef1",
+      "name_en": "Coral Colony / Reef Patch 1",
+      "name_ko": "산호 군락",
+      "preview_files": [
+        "coral_reef1.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/coral_reef1.png"
+      ],
+      "measured_bbox_m": [
+        0.1053,
+        0.1271,
+        0.0793
+      ],
+      "measured_max_m": 0.1271,
+      "triangles": 59999,
+      "normalized_source": false,
+      "measured_from": "data/objects/biological_clutter/ue_ready/coral_reef1.obj"
+    },
+    {
+      "id": "biological_clutter/coral_reef2",
+      "category": "biological_clutter",
+      "name": "coral_reef2",
+      "source": "data/objects/biological_clutter/original/coral_reef2.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/biological_clutter/coral_reef2",
+      "tags": [
+        "sssmat:M_Coralline"
+      ],
+      "material": "M_Coralline",
+      "target_size_m": 2.6,
+      "bbox_real_m": [
+        2.6,
+        2.0,
+        0.9
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Low-Medium",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "coral_reef2",
+      "name_en": "Coral Colony / Reef Patch 2",
+      "name_ko": "산호 군락",
+      "preview_files": [
+        "coral_reef2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/coral_reef2.png"
+      ],
+      "measured_bbox_m": [
+        0.3504,
+        0.2664,
+        0.2385
+      ],
+      "measured_max_m": 0.3504,
+      "triangles": 60000,
+      "normalized_source": false,
+      "measured_from": "data/objects/biological_clutter/ue_ready/coral_reef2.obj"
+    },
+    {
+      "id": "ceramics/mado18-121",
+      "category": "ceramics",
+      "name": "mado18-121",
+      "source": "data/objects/ceramics/original/mado18-121.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/ceramics/mado18-121",
+      "tags": [],
+      "material": null,
+      "target_size_m": 0.082,
+      "bbox_real_m": [
+        0.052,
+        0.052,
+        0.082
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.132, record 096",
+      "size_confidence": "High",
+      "size_status": "Source-reported remaining dimensions",
+      "base_object_id": "mado18-121",
+      "name_en": "Shard of Celadon Maebyeong",
+      "name_ko": "청자매병편",
+      "preview_files": [
+        "mado18-121_2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-121_2.png"
+      ],
+      "held_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    {
+      "id": "ceramics/mado18-130",
+      "category": "ceramics",
+      "name": "mado18-130",
+      "source": "data/objects/ceramics/original/mado18-130.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/ceramics/mado18-130",
+      "tags": [],
+      "material": null,
+      "target_size_m": 0.091,
+      "bbox_real_m": [
+        0.091,
+        0.091,
+        0.027
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.148, record 118",
+      "size_confidence": "High",
+      "size_status": "Source-reported dimensions",
+      "base_object_id": "mado18-130",
+      "name_en": "Earthenware Dish",
+      "name_ko": "도기접시",
+      "preview_files": [
+        "mado18-130_1.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-130_1.png"
+      ],
+      "held_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    {
+      "id": "ceramics/mado18-154",
+      "category": "ceramics",
+      "name": "mado18-154",
+      "source": "data/objects/ceramics/original/mado18-154.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/ceramics/mado18-154",
+      "tags": [],
+      "material": null,
+      "target_size_m": 0.16,
+      "bbox_real_m": [
+        0.16,
+        0.16,
+        0.073
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.79, record 015",
+      "size_confidence": "High",
+      "size_status": "Source-reported dimensions",
+      "base_object_id": "mado18-154",
+      "name_en": "Celadon Bowl with Incised Lotus-Petal Design",
+      "name_ko": "청자음각연판문발",
+      "preview_files": [
+        "mado18-154_1.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-154_1.png"
+      ],
+      "held_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    {
+      "id": "ceramics/mado18-2",
+      "category": "ceramics",
+      "name": "mado18-2",
+      "source": "data/objects/ceramics/original/mado18-2.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/ceramics/mado18-2",
+      "tags": [],
+      "material": null,
+      "target_size_m": 0.076,
+      "bbox_real_m": [
+        0.071,
+        0.071,
+        0.076
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.171, record 153",
+      "size_confidence": "High",
+      "size_status": "Mixed preserved and restored dimensions",
+      "base_object_id": "mado18-2",
+      "name_en": "Shard of Four-Handled Jar with Brown Glaze",
+      "name_ko": "도기사이호편",
+      "preview_files": [
+        "mado18-2_1.png",
+        "mado18-2_2.png",
+        "mado18-2_3.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-2_1.png",
+        "data/objects/previews/mado18-2_2.png",
+        "data/objects/previews/mado18-2_3.png"
+      ],
+      "held_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    {
+      "id": "ceramics/mado18-20",
+      "category": "ceramics",
+      "name": "mado18-20",
+      "source": "data/objects/ceramics/original/mado18-20.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/ceramics/mado18-20",
+      "tags": [],
+      "material": null,
+      "target_size_m": 0.111,
+      "bbox_real_m": [
+        0.046,
+        0.046,
+        0.111
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.170, record 152",
+      "size_confidence": "High",
+      "size_status": "Source-reported dimensions",
+      "base_object_id": "mado18-20",
+      "name_en": "Earthenware Small Bottle",
+      "name_ko": "도기소병",
+      "preview_files": [
+        "mado18-20_1.png",
+        "mado18-20_2.png",
+        "mado18-20_3.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-20_1.png",
+        "data/objects/previews/mado18-20_2.png",
+        "data/objects/previews/mado18-20_3.png"
+      ],
+      "held_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    {
+      "id": "ceramics/mado18-27",
+      "category": "ceramics",
+      "name": "mado18-27",
+      "source": "data/objects/ceramics/original/mado18-27.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/ceramics/mado18-27",
+      "tags": [],
+      "material": null,
+      "target_size_m": 0.164,
+      "bbox_real_m": [
+        0.164,
+        0.164,
+        0.06
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.75, record 007",
+      "size_confidence": "High",
+      "size_status": "Source-reported dimensions",
+      "base_object_id": "mado18-27",
+      "name_en": "Celadon Bowl",
+      "name_ko": "청자발",
+      "preview_files": [
+        "mado18-27_1.png",
+        "mado18-27_2.png",
+        "mado18-27_3.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-27_1.png",
+        "data/objects/previews/mado18-27_2.png",
+        "data/objects/previews/mado18-27_3.png"
+      ],
+      "held_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    {
+      "id": "ceramics/mado18-28",
+      "category": "ceramics",
+      "name": "mado18-28",
+      "source": "data/objects/ceramics/original/mado18-28.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/ceramics/mado18-28",
+      "tags": [],
+      "material": null,
+      "target_size_m": 0.219,
+      "bbox_real_m": [
+        0.219,
+        0.142,
+        0.015
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.177, record 157",
+      "size_confidence": "High",
+      "size_status": "Source-reported remaining dimensions",
+      "base_object_id": "mado18-28",
+      "name_en": "Shard of Concave Roof Tile",
+      "name_ko": "암키와편",
+      "preview_files": [
+        "mado18-28_1.png",
+        "mado18-28_2.png",
+        "mado18-28_3.png",
+        "mado18-28_4.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-28_1.png",
+        "data/objects/previews/mado18-28_2.png",
+        "data/objects/previews/mado18-28_3.png",
+        "data/objects/previews/mado18-28_4.png"
+      ],
+      "held_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    {
+      "id": "ceramics/mado18-39",
+      "category": "ceramics",
+      "name": "mado18-39",
+      "source": "data/objects/ceramics/original/mado18-39.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/ceramics/mado18-39",
+      "tags": [],
+      "material": null,
+      "target_size_m": 0.086,
+      "bbox_real_m": [
+        0.086,
+        0.086,
+        0.049
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.126, record 087",
+      "size_confidence": "High",
+      "size_status": "Source-reported dimensions",
+      "base_object_id": "mado18-39",
+      "name_en": "Celadon Cup",
+      "name_ko": "청자잔",
+      "preview_files": [
+        "mado18-39_1.png",
+        "mado18-39_2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-39_1.png",
+        "data/objects/previews/mado18-39_2.png"
+      ],
+      "held_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    {
+      "id": "ceramics/mado18-40",
+      "category": "ceramics",
+      "name": "mado18-40",
+      "source": "data/objects/ceramics/original/mado18-40.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/ceramics/mado18-40",
+      "tags": [],
+      "material": null,
+      "target_size_m": 0.202,
+      "bbox_real_m": [
+        0.202,
+        0.202,
+        0.068
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.87, record 027",
+      "size_confidence": "High",
+      "size_status": "Source-reported dimensions",
+      "base_object_id": "mado18-40",
+      "name_en": "Celadon Bowl with Inlaid Chrysanthemum and Litchi Design",
+      "name_ko": "청자상감국화여지문발",
+      "preview_files": [
+        "mado18-40_2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-40_2.png"
+      ],
+      "held_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    {
+      "id": "ceramics/mado18-69",
+      "category": "ceramics",
+      "name": "mado18-69",
+      "source": "data/objects/ceramics/original/mado18-69.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/ceramics/mado18-69",
+      "tags": [],
+      "material": null,
+      "target_size_m": 0.285,
+      "bbox_real_m": [
+        0.285,
+        0.115,
+        0.015
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.178, record 160",
+      "size_confidence": "High",
+      "size_status": "Source-reported remaining dimensions",
+      "base_object_id": "mado18-69",
+      "name_en": "Shard of Concave Roof Tile",
+      "name_ko": "암키와편",
+      "preview_files": [
+        "mado18-69_1.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-69_1.png"
+      ],
+      "held_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    {
+      "id": "ceramics/mado19-12",
+      "category": "ceramics",
+      "name": "mado19-12",
+      "source": "data/objects/ceramics/original/mado19-12.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/ceramics/mado19-12",
+      "tags": [],
+      "material": null,
+      "target_size_m": 0.084,
+      "bbox_real_m": [
+        0.084,
+        0.084,
+        0.051
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.128, record 091",
+      "size_confidence": "High",
+      "size_status": "Source-reported dimensions",
+      "base_object_id": "mado19-12",
+      "name_en": "Celadon Cup",
+      "name_ko": "청자잔",
+      "preview_files": [
+        "mado19-12_1.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado19-12_1.png"
+      ],
+      "held_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    {
+      "id": "ceramics/mado19-29",
+      "category": "ceramics",
+      "name": "mado19-29",
+      "source": "data/objects/ceramics/original/mado19-29.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/ceramics/mado19-29",
+      "tags": [],
+      "material": null,
+      "target_size_m": 0.434,
+      "bbox_real_m": [
+        0.434,
+        0.434,
+        0.244
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.150, record 123",
+      "size_confidence": "High",
+      "size_status": "Source-reported dimensions",
+      "base_object_id": "mado19-29",
+      "name_en": "Earthenware Brazier",
+      "name_ko": "도기화로",
+      "preview_files": [
+        "mado19-29_2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado19-29_2.png"
+      ],
+      "held_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    {
+      "id": "ceramics/mado19-31",
+      "category": "ceramics",
+      "name": "mado19-31",
+      "source": "data/objects/ceramics/original/mado19-31.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/ceramics/mado19-31",
+      "tags": [],
+      "material": null,
+      "target_size_m": 0.166,
+      "bbox_real_m": [
+        0.166,
+        0.166,
+        0.091
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.77, record 012",
+      "size_confidence": "High",
+      "size_status": "Mixed measured and restored dimensions",
+      "base_object_id": "mado19-31",
+      "name_en": "Shard of Celadon Bowl",
+      "name_ko": "청자발편",
+      "preview_files": [
+        "mado19-31_2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado19-31_2.png"
+      ],
+      "held_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    {
+      "id": "ceramics/mado19-7",
+      "category": "ceramics",
+      "name": "mado19-7",
+      "source": "data/objects/ceramics/original/mado19-7.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/ceramics/mado19-7",
+      "tags": [],
+      "material": null,
+      "target_size_m": 0.168,
+      "bbox_real_m": [
+        0.168,
+        0.168,
+        0.062
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.75, record 008",
+      "size_confidence": "High",
+      "size_status": "Mixed measured and restored dimensions",
+      "base_object_id": "mado19-7",
+      "name_en": "Shard of Celadon Bowl",
+      "name_ko": "청자발편",
+      "preview_files": [
+        "mado19-7_3.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado19-7_3.png"
+      ],
+      "held_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    {
+      "id": "fishing_gear/fishing-net",
+      "category": "fishing_gear",
+      "name": "fishing-net",
+      "source": "data/objects/fishing_gear/original/fishing-net.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/fishing_gear/fishing-net",
+      "tags": [],
+      "material": null,
+      "target_size_m": 4.0,
+      "bbox_real_m": [
+        4.0,
+        3.0,
+        0.35
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "fishing-net",
+      "name_en": "Discarded Fishing Net 1",
+      "name_ko": "폐어망",
+      "preview_files": [
+        "fishing-net.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/fishing-net.png"
+      ],
+      "held_reason": "(1) 나일론/PE 임피던스가 materials.csv 에 없고, (2) 그물은 개방 메시라 부피의 대부분이 물인데 solid mesh 로 모델링하면 실제 음향 반응과 다르다. '모사하기 어려우면 구현하지 말 것' 원칙에 따라 보류한다(사용자 결정, 2026-08-09)."
+    },
+    {
+      "id": "fishing_gear/fishing-net2",
+      "category": "fishing_gear",
+      "name": "fishing-net2",
+      "source": "data/objects/fishing_gear/original/fishing-net2.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/fishing_gear/fishing-net2",
+      "tags": [],
+      "material": null,
+      "target_size_m": 8.0,
+      "bbox_real_m": [
+        8.0,
+        5.0,
+        0.45
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "fishing-net2",
+      "name_en": "Discarded Fishing Net 2",
+      "name_ko": "폐어망",
+      "preview_files": [
+        "fishing-net2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/fishing-net2.png"
+      ],
+      "held_reason": "(1) 나일론/PE 임피던스가 materials.csv 에 없고, (2) 그물은 개방 메시라 부피의 대부분이 물인데 solid mesh 로 모델링하면 실제 음향 반응과 다르다. '모사하기 어려우면 구현하지 말 것' 원칙에 따라 보류한다(사용자 결정, 2026-08-09)."
+    },
+    {
+      "id": "fishing_gear/fishtrap",
+      "category": "fishing_gear",
+      "name": "fishtrap",
+      "source": "data/objects/fishing_gear/original/fishtrap.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/fishing_gear/fishtrap",
+      "tags": [],
+      "material": null,
+      "target_size_m": 1.1,
+      "bbox_real_m": [
+        1.1,
+        0.75,
+        0.45
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "fishtrap",
+      "name_en": "Fish Trap",
+      "name_ko": "통발 / 어구",
+      "preview_files": [
+        "fishtrap.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/fishtrap.png"
+      ],
+      "held_reason": "(1) 나일론/PE 임피던스가 materials.csv 에 없고, (2) 그물은 개방 메시라 부피의 대부분이 물인데 solid mesh 로 모델링하면 실제 음향 반응과 다르다. '모사하기 어려우면 구현하지 말 것' 원칙에 따라 보류한다(사용자 결정, 2026-08-09)."
+    },
+    {
+      "id": "fishing_gear/hook_chain",
+      "category": "fishing_gear",
+      "name": "hook_chain",
+      "source": "data/objects/fishing_gear/original/hook_chain.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/fishing_gear/hook_chain",
+      "tags": [],
+      "material": null,
+      "target_size_m": 3.0,
+      "bbox_real_m": [
+        3.0,
+        0.45,
+        0.22
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "hook_chain",
+      "name_en": "Hook and Chain",
+      "name_ko": "체인 및 후크",
+      "preview_files": [
+        "hook_chain.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/hook_chain.png"
+      ],
+      "held_reason": "(1) 나일론/PE 임피던스가 materials.csv 에 없고, (2) 그물은 개방 메시라 부피의 대부분이 물인데 solid mesh 로 모델링하면 실제 음향 반응과 다르다. '모사하기 어려우면 구현하지 말 것' 원칙에 따라 보류한다(사용자 결정, 2026-08-09)."
+    },
+    {
+      "id": "fishing_gear/ropes",
+      "category": "fishing_gear",
+      "name": "ropes",
+      "source": "data/objects/fishing_gear/original/ropes.fbx",
+      "available": false,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/fishing_gear/ropes",
+      "tags": [],
+      "material": null,
+      "target_size_m": 1.35,
+      "bbox_real_m": [
+        1.35,
+        1.05,
+        0.28
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "ropes",
+      "name_en": "Discarded Rope Pile",
+      "name_ko": "폐로프 / 밧줄 더미",
+      "preview_files": [
+        "ropes.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/ropes.png"
+      ],
+      "held_reason": "(1) 나일론/PE 임피던스가 materials.csv 에 없고, (2) 그물은 개방 메시라 부피의 대부분이 물인데 solid mesh 로 모델링하면 실제 음향 반응과 다르다. '모사하기 어려우면 구현하지 말 것' 원칙에 따라 보류한다(사용자 결정, 2026-08-09)."
+    },
+    {
+      "id": "geological_clutter/Rock1",
+      "category": "geological_clutter",
+      "name": "Rock1",
+      "source": "data/objects/geological_clutter/original/Rock1.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/Rock1",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 0.35,
+      "bbox_real_m": [
+        0.35,
+        0.28,
+        0.18
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "Rock1",
+      "name_en": "Seabed Rock 1",
+      "name_ko": "해저 암석",
+      "preview_files": [
+        "Rock1.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/Rock1.png"
+      ],
+      "measured_bbox_m": [
+        0.1415,
+        0.1994,
+        0.091
+      ],
+      "measured_max_m": 0.1994,
+      "triangles": 24095,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/original/Rock1.fbx"
+    },
+    {
+      "id": "geological_clutter/Rock2",
+      "category": "geological_clutter",
+      "name": "Rock2",
+      "source": "data/objects/geological_clutter/original/Rock2.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/Rock2",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 0.5,
+      "bbox_real_m": [
+        0.5,
+        0.42,
+        0.25
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "Rock2",
+      "name_en": "Seabed Rock 2",
+      "name_ko": "해저 암석",
+      "preview_files": [
+        "Rock2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/Rock2.png"
+      ],
+      "measured_bbox_m": [
+        0.0182,
+        0.03,
+        0.0121
+      ],
+      "measured_max_m": 0.03,
+      "triangles": 16548,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/ue_ready/Rock2.obj"
+    },
+    {
+      "id": "geological_clutter/Rock3",
+      "category": "geological_clutter",
+      "name": "Rock3",
+      "source": "data/objects/geological_clutter/original/Rock3.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/Rock3",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 0.7,
+      "bbox_real_m": [
+        0.7,
+        0.55,
+        0.35
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "Rock3",
+      "name_en": "Seabed Rock 3",
+      "name_ko": "해저 암석",
+      "preview_files": [
+        "Rock3.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/Rock3.png"
+      ],
+      "measured_bbox_m": [
+        0.0962,
+        0.1242,
+        0.0341
+      ],
+      "measured_max_m": 0.1242,
+      "triangles": 59999,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/ue_ready/Rock3.obj"
+    },
+    {
+      "id": "geological_clutter/Rock4",
+      "category": "geological_clutter",
+      "name": "Rock4",
+      "source": "data/objects/geological_clutter/original/Rock4.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/Rock4",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 0.9,
+      "bbox_real_m": [
+        0.9,
+        0.7,
+        0.45
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "Rock4",
+      "name_en": "Seabed Rock 4",
+      "name_ko": "해저 암석",
+      "preview_files": [
+        "Rock4.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/Rock4.png"
+      ],
+      "measured_bbox_m": [
+        0.0213,
+        0.0276,
+        0.0126
+      ],
+      "measured_max_m": 0.0276,
+      "triangles": 8994,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/ue_ready/Rock4.obj"
+    },
+    {
+      "id": "geological_clutter/Rock5",
+      "category": "geological_clutter",
+      "name": "Rock5",
+      "source": "data/objects/geological_clutter/original/Rock5.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/Rock5",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 1.2,
+      "bbox_real_m": [
+        1.2,
+        0.9,
+        0.55
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "Rock5",
+      "name_en": "Seabed Rock 5",
+      "name_ko": "해저 암석",
+      "preview_files": [
+        "Rock5.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/Rock5.png"
+      ],
+      "measured_bbox_m": [
+        6.4669,
+        3.7524,
+        3.3829
+      ],
+      "measured_max_m": 6.4669,
+      "triangles": 8692,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/original/Rock5.fbx"
+    },
+    {
+      "id": "geological_clutter/Rock6",
+      "category": "geological_clutter",
+      "name": "Rock6",
+      "source": "data/objects/geological_clutter/original/Rock6.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/Rock6",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 1.6,
+      "bbox_real_m": [
+        1.6,
+        1.2,
+        0.75
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "Rock6",
+      "name_en": "Seabed Rock 6",
+      "name_ko": "해저 암석",
+      "preview_files": [
+        "Rock6.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/Rock6.png"
+      ],
+      "measured_bbox_m": [
+        0.024,
+        0.0182,
+        0.0112
+      ],
+      "measured_max_m": 0.024,
+      "triangles": 100000,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/ue_ready/Rock6.obj"
+    },
+    {
+      "id": "geological_clutter/Rock7",
+      "category": "geological_clutter",
+      "name": "Rock7",
+      "source": "data/objects/geological_clutter/original/Rock7.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/Rock7",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 2.1,
+      "bbox_real_m": [
+        2.1,
+        1.55,
+        0.95
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "Rock7",
+      "name_en": "Seabed Rock 7",
+      "name_ko": "해저 암석",
+      "preview_files": [
+        "Rock7.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/Rock7.png"
+      ],
+      "measured_bbox_m": [
+        4.8175,
+        1.811,
+        3.2023
+      ],
+      "measured_max_m": 4.8175,
+      "triangles": 768,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/ue_ready/Rock7.obj"
+    },
+    {
+      "id": "geological_clutter/Rock8",
+      "category": "geological_clutter",
+      "name": "Rock8",
+      "source": "data/objects/geological_clutter/original/Rock8.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/Rock8",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 2.8,
+      "bbox_real_m": [
+        2.8,
+        2.1,
+        1.25
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not source-reported",
+      "base_object_id": "Rock8",
+      "name_en": "Seabed Rock 8",
+      "name_ko": "해저 암석",
+      "preview_files": [
+        "Rock8.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/Rock8.png"
+      ],
+      "measured_bbox_m": [
+        0.0211,
+        0.0208,
+        0.011
+      ],
+      "measured_max_m": 0.0211,
+      "triangles": 5000,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/ue_ready/Rock8.obj"
+    },
+    {
+      "id": "geological_clutter/Rock_assets",
+      "category": "geological_clutter",
+      "name": "Rock_assets",
+      "source": "data/objects/geological_clutter/original/Rock_assets.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/Rock_assets",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 1.8,
+      "bbox_real_m": [
+        1.8,
+        1.4,
+        0.38
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "Rock_assets",
+      "name_en": "Small Rock Asset Cluster",
+      "name_ko": "소형 암석 군집",
+      "preview_files": [
+        "Rock_assets.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/Rock_assets.png"
+      ],
+      "measured_bbox_m": [
+        0.0038,
+        0.0019,
+        0.0033
+      ],
+      "measured_max_m": 0.0038,
+      "triangles": 5740,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/ue_ready/Rock_assets.obj"
+    },
+    {
+      "id": "geological_clutter/Rock_assets2",
+      "category": "geological_clutter",
+      "name": "Rock_assets2",
+      "source": "data/objects/geological_clutter/original/Rock_assets2.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/Rock_assets2",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 2.8,
+      "bbox_real_m": [
+        2.8,
+        2.1,
+        0.85
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "Rock_assets2",
+      "name_en": "Medium Rock Asset Cluster",
+      "name_ko": "중형 암석 군집",
+      "preview_files": [
+        "Rock_assets2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/Rock_assets2.png"
+      ],
+      "measured_bbox_m": [
+        2.2386,
+        1.933,
+        0.575
+      ],
+      "measured_max_m": 2.2386,
+      "triangles": 376,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/original/Rock_assets2.fbx"
+    },
+    {
+      "id": "geological_clutter/Rock_assets3",
+      "category": "geological_clutter",
+      "name": "Rock_assets3",
+      "source": "data/objects/geological_clutter/original/Rock_assets3.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/Rock_assets3",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 3.6,
+      "bbox_real_m": [
+        3.6,
+        2.7,
+        1.05
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "Rock_assets3",
+      "name_en": "Large Rock Asset Cluster",
+      "name_ko": "대형 암석 군집",
+      "preview_files": [
+        "Rock_assets3.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/Rock_assets3.png"
+      ],
+      "measured_bbox_m": [
+        4.049,
+        3.7842,
+        1.4772
+      ],
+      "measured_max_m": 4.049,
+      "triangles": 2950,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/original/Rock_assets3.fbx"
+    },
+    {
+      "id": "geological_clutter/beach_rocks",
+      "category": "geological_clutter",
+      "name": "beach_rocks",
+      "source": "data/objects/geological_clutter/original/beach_rocks.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/beach_rocks",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 2.4,
+      "bbox_real_m": [
+        2.4,
+        1.8,
+        0.65
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "beach_rocks",
+      "name_en": "Beach Rock Cluster",
+      "name_ko": "해안 암석 군집",
+      "preview_files": [
+        "beach_rocks.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/beach_rocks.png"
+      ],
+      "measured_bbox_m": [
+        0.0094,
+        0.0105,
+        0.0015
+      ],
+      "measured_max_m": 0.0105,
+      "triangles": 60000,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/ue_ready/beach_rocks.obj"
+    },
+    {
+      "id": "geological_clutter/beachrock",
+      "category": "geological_clutter",
+      "name": "beachrock",
+      "source": "data/objects/geological_clutter/original/beachrock.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/beachrock",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 1.4,
+      "bbox_real_m": [
+        1.4,
+        0.95,
+        0.55
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "beachrock",
+      "name_en": "Beach Rock",
+      "name_ko": "해안 암석",
+      "preview_files": [
+        "beachrock.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/beachrock.png"
+      ],
+      "measured_bbox_m": [
+        0.1973,
+        0.2658,
+        0.0485
+      ],
+      "measured_max_m": 0.2658,
+      "triangles": 60000,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/ue_ready/beachrock.obj"
+    },
+    {
+      "id": "geological_clutter/ground_pebbles",
+      "category": "geological_clutter",
+      "name": "ground_pebbles",
+      "source": "data/objects/geological_clutter/original/ground_pebbles.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/ground_pebbles",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 0.55,
+      "bbox_real_m": [
+        0.55,
+        0.45,
+        0.06
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "ground_pebbles",
+      "name_en": "Ground Pebble Cluster",
+      "name_ko": "해저 자갈 군집",
+      "preview_files": [
+        "ground_pebbles.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/ground_pebbles.png"
+      ],
+      "measured_bbox_m": [
+        0.0191,
+        0.0016,
+        0.02
+      ],
+      "measured_max_m": 0.02,
+      "triangles": 2880,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/ue_ready/ground_pebbles.obj"
+    },
+    {
+      "id": "geological_clutter/pebbles",
+      "category": "geological_clutter",
+      "name": "pebbles",
+      "source": "data/objects/geological_clutter/original/pebbles.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/pebbles",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 0.7,
+      "bbox_real_m": [
+        0.7,
+        0.5,
+        0.08
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "pebbles",
+      "name_en": "Pebble and Small-Stone Cluster",
+      "name_ko": "자갈 및 소형 돌 군집",
+      "preview_files": [
+        "pebbles.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/pebbles.png"
+      ],
+      "measured_bbox_m": [
+        0.0441,
+        0.0078,
+        0.0618
+      ],
+      "measured_max_m": 0.0618,
+      "triangles": 59998,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/ue_ready/pebbles.obj"
+    },
+    {
+      "id": "geological_clutter/stone_piles",
+      "category": "geological_clutter",
+      "name": "stone_piles",
+      "source": "data/objects/geological_clutter/original/stone_piles.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/geological_clutter/stone_piles",
+      "tags": [
+        "sssmat:ShipwreckProjectReefRock"
+      ],
+      "material": "ShipwreckProjectReefRock",
+      "target_size_m": 2.6,
+      "bbox_real_m": [
+        2.6,
+        1.9,
+        0.65
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium-High",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "stone_piles",
+      "name_en": "Stone Pile Cluster",
+      "name_ko": "돌무더기",
+      "preview_files": [
+        "stone_piles.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/stone_piles.png"
+      ],
+      "measured_bbox_m": [
+        0.1085,
+        0.0747,
+        0.0865
+      ],
+      "measured_max_m": 0.1085,
+      "triangles": 60000,
+      "normalized_source": false,
+      "measured_from": "data/objects/geological_clutter/ue_ready/stone_piles.obj"
+    },
+    {
+      "id": "historical_ship/turtleship1",
+      "category": "historical_ship",
+      "name": "turtleship1",
+      "source": "data/objects/historical_ship/original/turtleship1.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/historical_ship/turtleship1",
+      "tags": [
+        "wreck",
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "target_size_m": 34.2,
+      "bbox_real_m": [
+        34.2,
+        10.3,
+        6.4
+      ],
+      "size_source": "Korean History Archive / e-History: Turtle Ship reference",
+      "size_source_url": "https://www.ehistory.go.kr/view/movie?mediadtl=21490&mediaid=10257&mediasrcgbn=KV",
+      "size_source_page": "113 cheok × 34 cheok × 21 cheok restoration reference",
+      "size_confidence": "Medium",
+      "size_status": "Approximate reconstruction dimensions",
+      "base_object_id": "turtleship",
+      "name_en": "Turtle Ship",
+      "name_ko": "거북선",
+      "preview_files": [
+        "turtleship1.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/turtleship1.png"
+      ],
+      "measured_bbox_m": [
+        1.9596,
+        0.8999,
+        0.7713
+      ],
+      "measured_max_m": 1.9596,
+      "triangles": 40000,
+      "normalized_source": true,
+      "measured_from": "data/objects/historical_ship/original/turtleship1.fbx"
+    },
+    {
+      "id": "historical_ship/turtleship2",
+      "category": "historical_ship",
+      "name": "turtleship2",
+      "source": "data/objects/historical_ship/original/turtleship2.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/historical_ship/turtleship2",
+      "tags": [
+        "wreck",
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "target_size_m": 34.2,
+      "bbox_real_m": [
+        34.2,
+        10.3,
+        6.4
+      ],
+      "size_source": "Korean History Archive / e-History: Turtle Ship reference",
+      "size_source_url": "https://www.ehistory.go.kr/view/movie?mediadtl=21490&mediaid=10257&mediasrcgbn=KV",
+      "size_source_page": "113 cheok × 34 cheok × 21 cheok restoration reference",
+      "size_confidence": "Medium",
+      "size_status": "Approximate reconstruction dimensions",
+      "base_object_id": "turtleship",
+      "name_en": "Turtle Ship",
+      "name_ko": "거북선",
+      "preview_files": [
+        "turtleship2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/turtleship2.png"
+      ],
+      "measured_bbox_m": [
+        1.9585,
+        1.3156,
+        0.4661
+      ],
+      "measured_max_m": 1.9585,
+      "triangles": 29999,
+      "normalized_source": true,
+      "measured_from": "data/objects/historical_ship/original/turtleship2.fbx"
+    },
+    {
+      "id": "historical_ship/turtleship3",
+      "category": "historical_ship",
+      "name": "turtleship3",
+      "source": "data/objects/historical_ship/original/turtleship3.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/historical_ship/turtleship3",
+      "tags": [
+        "wreck",
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "target_size_m": 34.2,
+      "bbox_real_m": [
+        34.2,
+        10.3,
+        6.4
+      ],
+      "size_source": "Korean History Archive / e-History: Turtle Ship reference",
+      "size_source_url": "https://www.ehistory.go.kr/view/movie?mediadtl=21490&mediaid=10257&mediasrcgbn=KV",
+      "size_source_page": "113 cheok × 34 cheok × 21 cheok restoration reference",
+      "size_confidence": "Medium",
+      "size_status": "Approximate reconstruction dimensions",
+      "base_object_id": "turtleship",
+      "name_en": "Turtle Ship",
+      "name_ko": "거북선",
+      "preview_files": [
+        "turtleship3.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/turtleship3.png"
+      ],
+      "measured_bbox_m": [
+        1.9557,
+        1.1459,
+        1.8634
+      ],
+      "measured_max_m": 1.9557,
+      "triangles": 40000,
+      "normalized_source": true,
+      "measured_from": "data/objects/historical_ship/original/turtleship3.fbx"
+    },
+    {
+      "id": "historical_ship/turtleship4",
+      "category": "historical_ship",
+      "name": "turtleship4",
+      "source": "data/objects/historical_ship/original/turtleship4.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/historical_ship/turtleship4",
+      "tags": [
+        "wreck",
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "target_size_m": 34.2,
+      "bbox_real_m": [
+        34.2,
+        10.3,
+        6.4
+      ],
+      "size_source": "Korean History Archive / e-History: Turtle Ship reference",
+      "size_source_url": "https://www.ehistory.go.kr/view/movie?mediadtl=21490&mediaid=10257&mediasrcgbn=KV",
+      "size_source_page": "113 cheok × 34 cheok × 21 cheok restoration reference",
+      "size_confidence": "Medium",
+      "size_status": "Approximate reconstruction dimensions",
+      "base_object_id": "turtleship",
+      "name_en": "Turtle Ship",
+      "name_ko": "거북선",
+      "preview_files": [
+        "turtleship4.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/turtleship4.png"
+      ],
+      "measured_bbox_m": [
+        1.9591,
+        1.3784,
+        0.5118
+      ],
+      "measured_max_m": 1.9591,
+      "triangles": 30000,
+      "normalized_source": true,
+      "measured_from": "data/objects/historical_ship/original/turtleship4.fbx"
+    },
+    {
+      "id": "metal/mado18-120",
+      "category": "metal",
+      "name": "mado18-120",
+      "source": "data/objects/metal/original/mado18-120.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/metal/mado18-120",
+      "tags": [
+        "sssmat:M_Metal_Steel"
+      ],
+      "material": "M_Metal_Steel",
+      "target_size_m": 0.166,
+      "bbox_real_m": [
+        0.166,
+        0.166,
+        0.11
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.208, record 199",
+      "size_confidence": "High",
+      "size_status": "Source-reported dimensions; total height combines body and handle",
+      "base_object_id": "mado18-120",
+      "name_en": "Bronze Lid",
+      "name_ko": "청동제뚜껑",
+      "preview_files": [
+        "mado18-120_1.png",
+        "mado18-120_2.png",
+        "mado18-120_3.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-120_1.png",
+        "data/objects/previews/mado18-120_2.png",
+        "data/objects/previews/mado18-120_3.png"
+      ]
+    },
+    {
+      "id": "metal/mado18-36",
+      "category": "metal",
+      "name": "mado18-36",
+      "source": "data/objects/metal/original/mado18-36.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/metal/mado18-36",
+      "tags": [
+        "sssmat:M_Metal_Steel"
+      ],
+      "material": "M_Metal_Steel",
+      "target_size_m": 0.025,
+      "bbox_real_m": [
+        0.025,
+        0.025,
+        0.0012
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.210, record 206",
+      "size_confidence": "High",
+      "size_status": "Source-reported dimensions",
+      "base_object_id": "mado18-36",
+      "name_en": "Yuanfeng Tongbao Coin",
+      "name_ko": "원풍통보",
+      "preview_files": [
+        "mado18-36_1.png",
+        "mado18-36_2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-36_1.png",
+        "data/objects/previews/mado18-36_2.png"
+      ]
+    },
+    {
+      "id": "metal/mado18-44",
+      "category": "metal",
+      "name": "mado18-44",
+      "source": "data/objects/metal/original/mado18-44.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/metal/mado18-44",
+      "tags": [
+        "sssmat:M_Metal_Steel"
+      ],
+      "material": "M_Metal_Steel",
+      "target_size_m": 0.203,
+      "bbox_real_m": [
+        0.203,
+        0.034,
+        0.004
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.209, record 201",
+      "size_confidence": "High",
+      "size_status": "Source-reported dimensions",
+      "base_object_id": "mado18-44",
+      "name_en": "Bronze Spoon",
+      "name_ko": "청동숟가락",
+      "preview_files": [
+        "mado18-44_1.png",
+        "mado18-44_2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-44_1.png",
+        "data/objects/previews/mado18-44_2.png"
+      ]
+    },
+    {
+      "id": "metal/mado19-20",
+      "category": "metal",
+      "name": "mado19-20",
+      "source": "data/objects/metal/original/mado19-20.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/metal/mado19-20",
+      "tags": [
+        "sssmat:M_Metal_Steel"
+      ],
+      "material": "M_Metal_Steel",
+      "target_size_m": 0.159,
+      "bbox_real_m": [
+        0.159,
+        0.159,
+        0.076
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.208, record 198",
+      "size_confidence": "High",
+      "size_status": "Source-reported dimensions; total height combines body and handle",
+      "base_object_id": "mado19-20",
+      "name_en": "Iron Pot Lid",
+      "name_ko": "철제솥뚜껑",
+      "preview_files": [
+        "mado19-20_1.png",
+        "mado19-20_2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado19-20_1.png",
+        "data/objects/previews/mado19-20_2.png"
+      ]
+    },
+    {
+      "id": "metal/mado19-43",
+      "category": "metal",
+      "name": "mado19-43",
+      "source": "data/objects/metal/original/mado19-43.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/metal/mado19-43",
+      "tags": [
+        "sssmat:M_Metal_Steel"
+      ],
+      "material": "M_Metal_Steel",
+      "target_size_m": 0.119,
+      "bbox_real_m": [
+        0.119,
+        0.016,
+        0.035
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.207, record 207",
+      "size_confidence": "Medium",
+      "size_status": "Mixed source dimensions and approximate envelope height",
+      "base_object_id": "mado19-43",
+      "name_en": "Copper Tobacco Pipe",
+      "name_ko": "동제담뱃대",
+      "preview_files": [
+        "mado19-43_1.png",
+        "mado19-43_2.png",
+        "mado19-43_3.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado19-43_1.png",
+        "data/objects/previews/mado19-43_2.png",
+        "data/objects/previews/mado19-43_3.png"
+      ]
+    },
+    {
+      "id": "modern_ship/Dongsheng",
+      "category": "modern_ship",
+      "name": "Dongsheng",
+      "source": "data/objects/modern_ship/original/Dongsheng.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/modern_ship/Dongsheng",
+      "tags": [
+        "wreck",
+        "sssmat:M_CobbleStone_Rough"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "target_size_m": 85.0,
+      "bbox_real_m": [
+        85.0,
+        15.0,
+        10.0
+      ],
+      "size_source": "GitHub preview/model filename",
+      "size_source_url": "https://github.com/KateHwang0929/shipwreck-sonar-ai/tree/main/3d%20modeling",
+      "size_source_page": "Dongsheng",
+      "size_confidence": "Low",
+      "size_status": "Approximate; authoritative vessel match not found",
+      "base_object_id": "dongsheng",
+      "name_en": "Dongsheng",
+      "name_ko": "둥성호(파일명 음역)",
+      "preview_files": [
+        "Dongsheng.jpg"
+      ],
+      "preview_paths": [
+        "data/objects/previews/Dongsheng.jpg"
+      ],
+      "measured_bbox_m": [
+        1.958,
+        0.4788,
+        0.4121
+      ],
+      "measured_max_m": 1.958,
+      "triangles": 20000,
+      "normalized_source": true,
+      "measured_from": "data/objects/modern_ship/original/Dongsheng.fbx"
+    },
+    {
+      "id": "mooring_fishing_gear/buoy_chains",
+      "category": "mooring_fishing_gear",
+      "name": "buoy_chains",
+      "source": "data/objects/mooring_fishing_gear/original/buoy_chains.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/mooring_fishing_gear/buoy_chains",
+      "tags": [
+        "sssmat:M_Metal_Steel"
+      ],
+      "material": "M_Metal_Steel",
+      "target_size_m": 1.6,
+      "bbox_real_m": [
+        1.6,
+        1.25,
+        0.42
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "buoy_chains",
+      "name_en": "Buoy Chain Pile",
+      "name_ko": "부표 체인 더미",
+      "preview_files": [
+        "buoy_chains.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/buoy_chains.png"
+      ],
+      "measured_bbox_m": [
+        0.0187,
+        0.026,
+        0.0071
+      ],
+      "measured_max_m": 0.026,
+      "triangles": 245160,
+      "normalized_source": false,
+      "measured_from": "data/objects/mooring_fishing_gear/original/buoy_chains.fbx"
+    },
+    {
+      "id": "sediment_feature/dirt_pile",
+      "category": "sediment_feature",
+      "name": "dirt_pile",
+      "source": "data/objects/sediment_feature/original/dirt_pile.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/sediment_feature/dirt_pile",
+      "tags": [
+        "sssmat:ShipwreckProjectSoftMud"
+      ],
+      "material": "ShipwreckProjectSoftMud",
+      "target_size_m": 3.0,
+      "bbox_real_m": [
+        3.0,
+        2.5,
+        1.0
+      ],
+      "size_source": "Sketchfab",
+      "size_source_url": "https://sketchfab.com/",
+      "size_source_page": "Exact Sketchfab asset page not provided",
+      "size_confidence": "Medium",
+      "size_status": "Approximate simulation scaling; not measured from mesh",
+      "base_object_id": "dirt_pile",
+      "name_en": "Sediment / Dirt Pile",
+      "name_ko": "퇴적토 더미",
+      "preview_files": [
+        "dirt_pile.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/dirt_pile.png"
+      ],
+      "measured_bbox_m": [
+        0.1429,
+        0.234,
+        0.2847
+      ],
+      "measured_max_m": 0.2847,
+      "triangles": 59999,
+      "normalized_source": false,
+      "measured_from": "data/objects/sediment_feature/ue_ready/dirt_pile.obj"
+    },
+    {
+      "id": "wooden/mado18-160",
+      "category": "wooden",
+      "name": "mado18-160",
+      "source": "data/objects/wooden/original/mado18-160.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/wooden/mado18-160",
+      "tags": [
+        "sssmat:M_Wood_Pine"
+      ],
+      "material": "M_Wood_Pine",
+      "target_size_m": 0.326,
+      "bbox_real_m": [
+        0.326,
+        0.083,
+        0.071
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.217, record 217",
+      "size_confidence": "High",
+      "size_status": "Source-reported remaining dimensions",
+      "base_object_id": "mado18-160",
+      "name_en": "Fragment of a Probable Wooden Stake",
+      "name_ko": "추정말뚝편",
+      "preview_files": [
+        "mado18-160_1.png",
+        "mado18-160_2.png",
+        "mado18-160_3.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-160_1.png",
+        "data/objects/previews/mado18-160_2.png",
+        "data/objects/previews/mado18-160_3.png"
+      ]
+    },
+    {
+      "id": "wooden/mado18-24",
+      "category": "wooden",
+      "name": "mado18-24",
+      "source": "data/objects/wooden/original/mado18-24.fbx",
+      "available": true,
+      "importable": true,
+      "ue_mesh": "/Game/SssObjects/wooden/mado18-24",
+      "tags": [
+        "sssmat:M_Wood_Pine"
+      ],
+      "material": "M_Wood_Pine",
+      "target_size_m": 0.153,
+      "bbox_real_m": [
+        0.095,
+        0.153,
+        0.009
+      ],
+      "size_source": "2021년 태안 마도해역 시굴조사 보고서 / Waters off the Taean–Mado Underwater Excavation (2021)",
+      "size_source_url": "https://www.seamuse.go.kr/resources/academiccultural/info/2894",
+      "size_source_page": "p.216, record 216",
+      "size_confidence": "High",
+      "size_status": "Source-reported remaining dimensions",
+      "base_object_id": "mado18-24",
+      "name_en": "Unidentified Wooden Object",
+      "name_ko": "용도미상 목제품",
+      "preview_files": [
+        "mado18-24_1.png",
+        "mado18-24_2.png"
+      ],
+      "preview_paths": [
+        "data/objects/previews/mado18-24_1.png",
+        "data/objects/previews/mado18-24_2.png"
+      ]
+    }
+  ]
+}

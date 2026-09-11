@@ -1,0 +1,4 @@
+{
+  "_comment": "메인 CSV(asset_database.csv) 범위 밖 자산의 치수·출처 보충. 현재는 원천 shipwreck-sonar-ai 자산 94종만 유지하므로 추가 로컬 자산은 없다.",
+  "assets": []
+}

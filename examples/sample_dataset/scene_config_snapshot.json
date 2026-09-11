@@ -1,0 +1,1026 @@
+{
+  "_comment": "씬 랜덤화 설정. 오브젝트 카테고리별 기본값 + 씬/지형/주행 샘플링 범위. scene_manifest.py 가 읽는다. material 이름은 반드시 engine/Content/Config/materials.csv 에 등록돼 있어야 한다. 카테고리 체계는 data/objects/asset_database.csv 의 Category 를 그대로 채택했다(2026-08-09). 자산 크기는 카테고리 상수가 아니라 그 CSV 의 자산별 실측 치수를 쓴다 — catalog.json 의 target_size_m 참조.",
+  "object_root": "data/objects",
+  "ue_mesh_root": "/Game/SssObjects",
+  "excluded_objects": [
+    "geological_clutter/Rock_assets",
+    "geological_clutter/beach_rocks",
+    "anthropogenic_debris/wood_plank_rotten"
+  ],
+  "_excluded_objects_note": "UE 실측 메시 최대변과 목표 실물 크기의 비가 비정상적으로 큰 자산은 배치하지 않는다. Rock_assets(474배), beach_rocks(229배), wood_plank_rotten(449배)는 원본 단위 이상으로 제외한다. 원본 FBX/UE asset은 보존하며, 실측 단위가 수정·재임포트되기 전까지만 scene manifest에서 제외한다.",
+  "object_categories": {
+    "modern_ship": {
+      "_note": "GT 정답 대상. 현대 선박 난파. gt_label_tag('wreck')와 일치해야 한다.",
+      "_material_note": "M_CobbleStone_Rough(2600,3800) = 해양생물 착생/피복된 경질 표면 근사. 수중 난파선 표면은 목재/강철 원재질이 아니라 착생층이 음향적으로 지배하므로 이 값을 쓴다(2026-08-06 원본 레포 materials.csv 와 대조 확인한 기존 결정 유지).",
+      "tags": [
+        "wreck"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "count_range": [
+        2,
+        2
+      ],
+      "scale_range": [
+        0.9,
+        1.1
+      ],
+      "burial_ratio_range": [
+        0.0,
+        0.3
+      ],
+      "yaw_range_deg": [
+        0,
+        360
+      ],
+      "pitch_range_deg": [
+        -35.0,
+        35.0
+      ],
+      "roll_range_deg": [
+        -35.0,
+        35.0
+      ],
+      "_size_note": "CSV 실측 70~110 m. 크기는 자산별 CSV 치수를 쓰므로 여기 target_size_m 는 두지 않는다."
+    },
+    "archaeological_ship": {
+      "_note": "GT 정답 대상. 태안 마도해역 출수 고선박(달리도선·마도1호선·십이동파도선).",
+      "_material_note": "M_CobbleStone_Rough(2600,3800) = 해양생물 착생/피복된 경질 표면 근사. 수중 난파선 표면은 목재/강철 원재질이 아니라 착생층이 음향적으로 지배하므로 이 값을 쓴다(2026-08-06 원본 레포 materials.csv 와 대조 확인한 기존 결정 유지).",
+      "tags": [
+        "wreck"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "count_range": [
+        2,
+        2
+      ],
+      "scale_range": [
+        0.9,
+        1.1
+      ],
+      "burial_ratio_range": [
+        0.05,
+        0.45
+      ],
+      "yaw_range_deg": [
+        0,
+        360
+      ],
+      "pitch_range_deg": [
+        -35.0,
+        35.0
+      ],
+      "roll_range_deg": [
+        -35.0,
+        35.0
+      ],
+      "_size_note": "CSV 실측 7~15.5 m. 잔존 선체는 대부분 매몰돼 있어 burial 상한을 높게 뒀다."
+    },
+    "historical_ship": {
+      "_note": "GT 정답 대상. 거북선(CSV) + 서양 범선 난파 11종(우리 STL 변환본, local_assets.json).",
+      "_material_note": "M_CobbleStone_Rough(2600,3800) = 해양생물 착생/피복된 경질 표면 근사. 수중 난파선 표면은 목재/강철 원재질이 아니라 착생층이 음향적으로 지배하므로 이 값을 쓴다(2026-08-06 원본 레포 materials.csv 와 대조 확인한 기존 결정 유지).",
+      "tags": [
+        "wreck"
+      ],
+      "material": "M_CobbleStone_Rough",
+      "count_range": [
+        1,
+        1
+      ],
+      "scale_range": [
+        0.85,
+        1.15
+      ],
+      "burial_ratio_range": [
+        0.0,
+        0.35
+      ],
+      "yaw_range_deg": [
+        0,
+        360
+      ],
+      "pitch_range_deg": [
+        -35.0,
+        35.0
+      ],
+      "roll_range_deg": [
+        -35.0,
+        35.0
+      ],
+      "_size_note": "거북선 34.2 m, 서양 범선 17~67 m. 자산별 치수 사용."
+    },
+    "metal": {
+      "_note": "마도 출수 금속 유물(청동 뚜껑·숟가락, 철제 솥뚜껑, 동전 등). GT 대상 아님.",
+      "_material_note": "M_Metal_Steel(7700,5900). 기존 metal 카테고리 결정 유지 — 강철 임피던스로 가장 밝게 나온다.",
+      "tags": [],
+      "material": "M_Metal_Steel",
+      "count_range": [
+        8,
+        12
+      ],
+      "scale_range": [
+        0.8,
+        1.2
+      ],
+      "burial_ratio_range": [
+        0.0,
+        0.4
+      ],
+      "yaw_range_deg": [
+        0,
+        360
+      ],
+      "pitch_range_deg": [
+        -25,
+        25
+      ],
+      "roll_range_deg": [
+        -25,
+        25
+      ],
+      "_size_note": "CSV 실측 0.025~0.2 m. 5종은 거리 분해능(0.15 m) 미만이라 min_size_m 필터에 걸린다."
+    },
+    "wooden": {
+      "_note": "마도 출수 목재 유물(선재·목간 등). 목재는 물과 임피던스가 가까워 어둡게 나온다. GT 대상 아님.",
+      "_material_note": "M_Wood_Pine(650,3300). 기존 wooden 카테고리 결정 유지.",
+      "tags": [],
+      "material": "M_Wood_Pine",
+      "count_range": [
+        7,
+        10
+      ],
+      "scale_range": [
+        0.8,
+        1.2
+      ],
+      "burial_ratio_range": [
+        0.0,
+        0.5
+      ],
+      "yaw_range_deg": [
+        0,
+        360
+      ],
+      "pitch_range_deg": [
+        -20,
+        20
+      ],
+      "roll_range_deg": [
+        -20,
+        20
+      ],
+      "_size_note": "CSV 실측 0.095~0.33 m."
+    },
+    "ceramics": {
+      "_note": "마도 출수 도자기(청자·도기·기와편). GT 대상 아님.",
+      "tags": [],
+      "material": null,
+      "count_range": [
+        0,
+        0
+      ],
+      "scale_range": [
+        0.8,
+        1.2
+      ],
+      "burial_ratio_range": [
+        0.0,
+        0.5
+      ],
+      "yaw_range_deg": [
+        0,
+        360
+      ],
+      "pitch_range_deg": [
+        -25,
+        25
+      ],
+      "roll_range_deg": [
+        -25,
+        25
+      ],
+      "_size_note": "CSV 실측 0.046~0.43 m. 11종은 거리 분해능 미만.",
+      "enabled": false,
+      "_hold_reason": "음향 재질 근거 미확보 — materials.csv 에 소성 도자기 항목이 없다. 임의값을 넣지 않고 보류한다(사용자 결정, 2026-08-09). 밀도·음속 출처가 확보되면 materials.csv 에 등록하고 enabled=true 로 바꾼다."
+    },
+    "geological_clutter": {
+      "_note": "해저 암석·자갈·돌무더기. 배경 클러터, GT 대상 아님.",
+      "_material_note": "ShipwreckProjectReefRock(2560,3700). 기존 reef_rock 결정 유지 — APL-UW TR9407 'Rock' 행(2.50x1024, 2.50x1480).",
+      "tags": [],
+      "material": "ShipwreckProjectReefRock",
+      "count_range": [
+        0,
+        0
+      ],
+      "scale_range": [
+        0.7,
+        1.5
+      ],
+      "burial_ratio_range": [
+        0.1,
+        0.5
+      ],
+      "yaw_range_deg": [
+        0,
+        360
+      ],
+      "pitch_range_deg": [
+        -20,
+        20
+      ],
+      "roll_range_deg": [
+        -20,
+        20
+      ],
+      "_size_note": "CSV 실측 0.35~3.6 m."
+    },
+    "biological_clutter": {
+      "_note": "산호 군체·사멸 산호 골격. 배경 클러터, GT 대상 아님.",
+      "_material_note": "M_Coralline(2000,2500). materials.csv 에 이미 등록된 산호조류 재질로, 이 카테고리가 정확히 그 대상이다.",
+      "tags": [],
+      "material": "M_Coralline",
+      "count_range": [
+        12,
+        24
+      ],
+      "scale_range": [
+        0.7,
+        1.4
+      ],
+      "burial_ratio_range": [
+        0.0,
+        0.35
+      ],
+      "yaw_range_deg": [
+        0,
+        360
+      ],
+      "pitch_range_deg": [
+        -20,
+        20
+      ],
+      "roll_range_deg": [
+        -20,
+        20
+      ],
+      "_size_note": "CSV 실측 0.45~2.6 m."
+    },
+    "sediment_feature": {
+      "_note": "퇴적물 더미. 배경 클러터, GT 대상 아님.",
+      "_material_note": "ShipwreckProjectSoftMud(1175,1456). 퇴적 더미는 주변 해저와 임피던스가 비슷해 약반사가 맞다.",
+      "tags": [],
+      "material": "M_Brown_Sand",
+      "count_range": [
+        0,
+        0
+      ],
+      "scale_range": [
+        0.7,
+        1.5
+      ],
+      "burial_ratio_range": [
+        0.2,
+        0.6
+      ],
+      "yaw_range_deg": [
+        0,
+        360
+      ],
+      "pitch_range_deg": [
+        -10,
+        10
+      ],
+      "roll_range_deg": [
+        -10,
+        10
+      ],
+      "_size_note": "CSV 실측 3.0 m.",
+      "_large_dataset_material_note": "대규모 서해안 타일에서는 퇴적 더미를 주변 Very Fine Sand와 같은 1298 kg/m3, 1564 m/s로 처리한다."
+    },
+    "anthropogenic_debris": {
+      "_note": "인공 잔해(앵커·썩은 목재판·건설잔해·벽돌더미·타이어). GT 대상 아님.",
+      "_material_note": "재질이 자산마다 달라 카테고리 단일값이 성립하지 않는다. 자산별 material 을 쓰고, 근거 없는 3종(벽돌더미·흙벽돌더미·타이어)은 catalog 에서 보류 처리된다.",
+      "tags": [],
+      "material": "M_CobbleStone_Rough",
+      "count_range": [
+        8,
+        15
+      ],
+      "scale_range": [
+        0.8,
+        1.3
+      ],
+      "burial_ratio_range": [
+        0.0,
+        0.4
+      ],
+      "yaw_range_deg": [
+        0,
+        360
+      ],
+      "pitch_range_deg": [
+        -20,
+        20
+      ],
+      "roll_range_deg": [
+        -20,
+        20
+      ],
+      "_size_note": "CSV 실측 1.8~3.0 m.",
+      "_material_per_asset": "재질이 자산마다 다르다. catalog.json 의 자산별 material 을 우선 쓰고, 없으면 위 material 로 폴백한다."
+    },
+    "artificial_structure": {
+      "_note": "인공어초 등 콘크리트 구조물. GT 대상 아님.",
+      "_material_note": "M_Pier_Concrete_01(2400,3700). 인공어초는 콘크리트제이고 materials.csv 에 등록돼 있다.",
+      "tags": [],
+      "material": "M_Pier_Concrete_01",
+      "count_range": [
+        2,
+        6
+      ],
+      "scale_range": [
+        0.8,
+        1.3
+      ],
+      "burial_ratio_range": [
+        0.0,
+        0.3
+      ],
+      "yaw_range_deg": [
+        0,
+        360
+      ],
+      "pitch_range_deg": [
+        -10,
+        10
+      ],
+      "roll_range_deg": [
+        -10,
+        10
+      ],
+      "_size_note": "CSV 실측 3.0 m."
+    },
+    "mooring_fishing_gear": {
+      "_note": "계류 부표 체인 더미. GT 대상 아님.",
+      "_material_note": "M_Metal_Steel(7700,5900). 부표 체인은 강철이다.",
+      "tags": [],
+      "material": "M_Metal_Steel",
+      "count_range": [
+        3,
+        8
+      ],
+      "scale_range": [
+        0.8,
+        1.3
+      ],
+      "burial_ratio_range": [
+        0.0,
+        0.4
+      ],
+      "yaw_range_deg": [
+        0,
+        360
+      ],
+      "pitch_range_deg": [
+        -20,
+        20
+      ],
+      "roll_range_deg": [
+        -20,
+        20
+      ],
+      "_size_note": "CSV 실측 1.6 m."
+    },
+    "fishing_gear": {
+      "_note": "폐어망·로프더미·통발·갈고리체인. GT 대상 아님.",
+      "tags": [],
+      "material": null,
+      "count_range": [
+        0,
+        0
+      ],
+      "scale_range": [
+        0.8,
+        1.3
+      ],
+      "burial_ratio_range": [
+        0.0,
+        0.4
+      ],
+      "yaw_range_deg": [
+        0,
+        360
+      ],
+      "pitch_range_deg": [
+        -20,
+        20
+      ],
+      "roll_range_deg": [
+        -20,
+        20
+      ],
+      "_size_note": "CSV 실측 1.1~8.0 m.",
+      "enabled": false,
+      "_hold_reason": "(1) 나일론/PE 임피던스가 materials.csv 에 없고, (2) 그물은 개방 메시라 부피의 대부분이 물인데 solid mesh 로 모델링하면 실제 음향 반응과 다르다. '모사하기 어려우면 구현하지 말 것' 원칙에 따라 보류한다(사용자 결정, 2026-08-09)."
+    }
+  },
+  "terrains": [
+    {
+      "id": "khoa_taean_mado_1km_sw",
+      "seabed_top_m": -4.39,
+      "seabed_bottom_m": -17.76,
+      "extent_m": [
+        -500.0,
+        -500.0,
+        500.0,
+        500.0
+      ],
+      "heightfield_csv": "mado_terrain/khoa_taean_mado_1km_sw_terrain.csv",
+      "facies_config": "mado_scenes/khoa_taean_mado_1km_sw.json",
+      "scene_preset": "khoa_taean_mado_1km_sw.json",
+      "available": true,
+      "terrain_source": "KHOA/data.go.kr Taean-Mado bathymetry",
+      "source_window_center_m": [
+        -330.0,
+        -250.0
+      ],
+      "source_observation_spacing_m": 150.0,
+      "mesh_cell_m": 5.0,
+      "_depth_note": "실측 거시수심 보간 타일. 수심 4.39–17.76 m, 기복 13.38 m. 5 m mesh는 관측 해상도가 아님."
+    },
+    {
+      "id": "khoa_taean_mado_1km_se",
+      "seabed_top_m": -2.65,
+      "seabed_bottom_m": -9.95,
+      "extent_m": [
+        -500.0,
+        -500.0,
+        500.0,
+        500.0
+      ],
+      "heightfield_csv": "mado_terrain/khoa_taean_mado_1km_se_terrain.csv",
+      "facies_config": "mado_scenes/khoa_taean_mado_1km_se.json",
+      "scene_preset": "khoa_taean_mado_1km_se.json",
+      "available": true,
+      "terrain_source": "KHOA/data.go.kr Taean-Mado bathymetry",
+      "source_window_center_m": [
+        330.0,
+        -250.0
+      ],
+      "source_observation_spacing_m": 150.0,
+      "mesh_cell_m": 5.0,
+      "_depth_note": "실측 거시수심 보간 타일. 수심 2.65–9.95 m, 기복 7.30 m. 5 m mesh는 관측 해상도가 아님."
+    },
+    {
+      "id": "khoa_taean_mado_1km_nw",
+      "seabed_top_m": -7.19,
+      "seabed_bottom_m": -15.17,
+      "extent_m": [
+        -500.0,
+        -500.0,
+        500.0,
+        500.0
+      ],
+      "heightfield_csv": "mado_terrain/khoa_taean_mado_1km_nw_terrain.csv",
+      "facies_config": "mado_scenes/khoa_taean_mado_1km_nw.json",
+      "scene_preset": "khoa_taean_mado_1km_nw.json",
+      "available": true,
+      "terrain_source": "KHOA/data.go.kr Taean-Mado bathymetry",
+      "source_window_center_m": [
+        -330.0,
+        210.0
+      ],
+      "source_observation_spacing_m": 150.0,
+      "mesh_cell_m": 5.0,
+      "_depth_note": "실측 거시수심 보간 타일. 수심 7.19–15.17 m, 기복 7.98 m. 5 m mesh는 관측 해상도가 아님."
+    },
+    {
+      "id": "khoa_taean_mado_1km_ne",
+      "seabed_top_m": -4.62,
+      "seabed_bottom_m": -10.35,
+      "extent_m": [
+        -500.0,
+        -500.0,
+        500.0,
+        500.0
+      ],
+      "heightfield_csv": "mado_terrain/khoa_taean_mado_1km_ne_terrain.csv",
+      "facies_config": "mado_scenes/khoa_taean_mado_1km_ne.json",
+      "scene_preset": "khoa_taean_mado_1km_ne.json",
+      "available": true,
+      "terrain_source": "KHOA/data.go.kr Taean-Mado bathymetry",
+      "source_window_center_m": [
+        330.0,
+        210.0
+      ],
+      "source_observation_spacing_m": 150.0,
+      "mesh_cell_m": 5.0,
+      "_depth_note": "실측 거시수심 보간 타일. 수심 4.62–10.35 m, 기복 5.73 m. 5 m mesh는 관측 해상도가 아님."
+    },
+    {
+      "id": "khoa_taean_mado_500m_00",
+      "seabed_top_m": -9.8,
+      "seabed_bottom_m": -17.46,
+      "extent_m": [
+        -250.0,
+        -250.0,
+        250.0,
+        250.0
+      ],
+      "heightfield_csv": "mado_terrain/khoa_taean_mado_500m_00_terrain.csv",
+      "facies_config": "mado_scenes/khoa_taean_mado_500m_00.json",
+      "scene_preset": "khoa_taean_mado_500m_00.json",
+      "available": true,
+      "terrain_source": "KHOA/data.go.kr Taean-Mado bathymetry",
+      "source_window_center_m": [
+        -550.0,
+        -550.0
+      ],
+      "source_observation_spacing_m": 150.0,
+      "mesh_cell_m": 5.0,
+      "_depth_note": "실측 거시수심 보간 타일. 수심 9.80–17.46 m, 기복 7.67 m. 5 m mesh는 관측 해상도가 아님."
+    },
+    {
+      "id": "khoa_taean_mado_500m_01",
+      "seabed_top_m": -3.55,
+      "seabed_bottom_m": -10.43,
+      "extent_m": [
+        -250.0,
+        -250.0,
+        250.0,
+        250.0
+      ],
+      "heightfield_csv": "mado_terrain/khoa_taean_mado_500m_01_terrain.csv",
+      "facies_config": "mado_scenes/khoa_taean_mado_500m_01.json",
+      "scene_preset": "khoa_taean_mado_500m_01.json",
+      "available": true,
+      "terrain_source": "KHOA/data.go.kr Taean-Mado bathymetry",
+      "source_window_center_m": [
+        0.0,
+        -550.0
+      ],
+      "source_observation_spacing_m": 150.0,
+      "mesh_cell_m": 5.0,
+      "_depth_note": "실측 거시수심 보간 타일. 수심 3.55–10.43 m, 기복 6.88 m. 5 m mesh는 관측 해상도가 아님."
+    },
+    {
+      "id": "khoa_taean_mado_500m_02",
+      "seabed_top_m": -2.47,
+      "seabed_bottom_m": -6.52,
+      "extent_m": [
+        -250.0,
+        -250.0,
+        250.0,
+        250.0
+      ],
+      "heightfield_csv": "mado_terrain/khoa_taean_mado_500m_02_terrain.csv",
+      "facies_config": "mado_scenes/khoa_taean_mado_500m_02.json",
+      "scene_preset": "khoa_taean_mado_500m_02.json",
+      "available": true,
+      "terrain_source": "KHOA/data.go.kr Taean-Mado bathymetry",
+      "source_window_center_m": [
+        550.0,
+        -550.0
+      ],
+      "source_observation_spacing_m": 150.0,
+      "mesh_cell_m": 5.0,
+      "_depth_note": "실측 거시수심 보간 타일. 수심 2.47–6.52 m, 기복 4.05 m. 5 m mesh는 관측 해상도가 아님."
+    },
+    {
+      "id": "khoa_taean_mado_500m_10",
+      "seabed_top_m": -9.89,
+      "seabed_bottom_m": -15.14,
+      "extent_m": [
+        -250.0,
+        -250.0,
+        250.0,
+        250.0
+      ],
+      "heightfield_csv": "mado_terrain/khoa_taean_mado_500m_10_terrain.csv",
+      "facies_config": "mado_scenes/khoa_taean_mado_500m_10.json",
+      "scene_preset": "khoa_taean_mado_500m_10.json",
+      "available": true,
+      "terrain_source": "KHOA/data.go.kr Taean-Mado bathymetry",
+      "source_window_center_m": [
+        -550.0,
+        -50.0
+      ],
+      "source_observation_spacing_m": 150.0,
+      "mesh_cell_m": 5.0,
+      "_depth_note": "실측 거시수심 보간 타일. 수심 9.89–15.14 m, 기복 5.25 m. 5 m mesh는 관측 해상도가 아님."
+    },
+    {
+      "id": "khoa_taean_mado_500m_11",
+      "seabed_top_m": -6.72,
+      "seabed_bottom_m": -10.61,
+      "extent_m": [
+        -250.0,
+        -250.0,
+        250.0,
+        250.0
+      ],
+      "heightfield_csv": "mado_terrain/khoa_taean_mado_500m_11_terrain.csv",
+      "facies_config": "mado_scenes/khoa_taean_mado_500m_11.json",
+      "scene_preset": "khoa_taean_mado_500m_11.json",
+      "available": true,
+      "terrain_source": "KHOA/data.go.kr Taean-Mado bathymetry",
+      "source_window_center_m": [
+        0.0,
+        -50.0
+      ],
+      "source_observation_spacing_m": 150.0,
+      "mesh_cell_m": 5.0,
+      "_depth_note": "실측 거시수심 보간 타일. 수심 6.72–10.61 m, 기복 3.89 m. 5 m mesh는 관측 해상도가 아님."
+    },
+    {
+      "id": "khoa_taean_mado_500m_12",
+      "seabed_top_m": -4.68,
+      "seabed_bottom_m": -7.52,
+      "extent_m": [
+        -250.0,
+        -250.0,
+        250.0,
+        250.0
+      ],
+      "heightfield_csv": "mado_terrain/khoa_taean_mado_500m_12_terrain.csv",
+      "facies_config": "mado_scenes/khoa_taean_mado_500m_12.json",
+      "scene_preset": "khoa_taean_mado_500m_12.json",
+      "available": true,
+      "terrain_source": "KHOA/data.go.kr Taean-Mado bathymetry",
+      "source_window_center_m": [
+        550.0,
+        -50.0
+      ],
+      "source_observation_spacing_m": 150.0,
+      "mesh_cell_m": 5.0,
+      "_depth_note": "실측 거시수심 보간 타일. 수심 4.68–7.52 m, 기복 2.84 m. 5 m mesh는 관측 해상도가 아님."
+    },
+    {
+      "id": "khoa_taean_mado_500m_20",
+      "seabed_top_m": -7.9,
+      "seabed_bottom_m": -10.59,
+      "extent_m": [
+        -250.0,
+        -250.0,
+        250.0,
+        250.0
+      ],
+      "heightfield_csv": "mado_terrain/khoa_taean_mado_500m_20_terrain.csv",
+      "facies_config": "mado_scenes/khoa_taean_mado_500m_20.json",
+      "scene_preset": "khoa_taean_mado_500m_20.json",
+      "available": true,
+      "terrain_source": "KHOA/data.go.kr Taean-Mado bathymetry",
+      "source_window_center_m": [
+        -550.0,
+        450.0
+      ],
+      "source_observation_spacing_m": 150.0,
+      "mesh_cell_m": 5.0,
+      "_depth_note": "실측 거시수심 보간 타일. 수심 7.90–10.59 m, 기복 2.69 m. 5 m mesh는 관측 해상도가 아님."
+    },
+    {
+      "id": "khoa_taean_mado_500m_21",
+      "seabed_top_m": -7.7,
+      "seabed_bottom_m": -10.47,
+      "extent_m": [
+        -250.0,
+        -250.0,
+        250.0,
+        250.0
+      ],
+      "heightfield_csv": "mado_terrain/khoa_taean_mado_500m_21_terrain.csv",
+      "facies_config": "mado_scenes/khoa_taean_mado_500m_21.json",
+      "scene_preset": "khoa_taean_mado_500m_21.json",
+      "available": true,
+      "terrain_source": "KHOA/data.go.kr Taean-Mado bathymetry",
+      "source_window_center_m": [
+        0.0,
+        450.0
+      ],
+      "source_observation_spacing_m": 150.0,
+      "mesh_cell_m": 5.0,
+      "_depth_note": "실측 거시수심 보간 타일. 수심 7.70–10.47 m, 기복 2.78 m. 5 m mesh는 관측 해상도가 아님."
+    },
+    {
+      "id": "khoa_taean_mado_500m_22",
+      "seabed_top_m": -5.77,
+      "seabed_bottom_m": -8.05,
+      "extent_m": [
+        -250.0,
+        -250.0,
+        250.0,
+        250.0
+      ],
+      "heightfield_csv": "mado_terrain/khoa_taean_mado_500m_22_terrain.csv",
+      "facies_config": "mado_scenes/khoa_taean_mado_500m_22.json",
+      "scene_preset": "khoa_taean_mado_500m_22.json",
+      "available": true,
+      "terrain_source": "KHOA/data.go.kr Taean-Mado bathymetry",
+      "source_window_center_m": [
+        550.0,
+        450.0
+      ],
+      "source_observation_spacing_m": 150.0,
+      "mesh_cell_m": 5.0,
+      "_depth_note": "실측 거시수심 보간 타일. 수심 5.77–8.05 m, 기복 2.29 m. 5 m mesh는 관측 해상도가 아님."
+    },
+    {
+      "id": "my_field_v1",
+      "seabed_top_m": -18.93,
+      "seabed_bottom_m": -30.44,
+      "extent_m": [
+        -150.0,
+        -120.0,
+        150.0,
+        120.0
+      ],
+      "heightfield_csv": "mado_terrain/my_field_v1_terrain.csv",
+      "facies_config": "mado_scenes/my_field_v1.json",
+      "scene_preset": "my_field_v1.json",
+      "available": true,
+      "_depth_note": "scripts/make_terrain.py 생성. 기복 11.52 m (수심 18.93~30.44 m). 고도 산정은 최저점 기준."
+    },
+    {
+      "id": "presentation_my_field_v1_facies",
+      "seabed_top_m": -18.93,
+      "seabed_bottom_m": -30.44,
+      "extent_m": [
+        -150.0,
+        -120.0,
+        150.0,
+        120.0
+      ],
+      "heightfield_csv": "mado_terrain/presentation_my_field_v1_facies_terrain.csv",
+      "facies_config": "mado_scenes/presentation_my_field_v1_facies.json",
+      "scene_preset": "presentation_my_field_v1_facies.json",
+      "available": true,
+      "_depth_note": "scripts/make_terrain.py 생성. 기복 11.52 m (수심 18.93~30.44 m). 고도 산정은 최저점 기준."
+    },
+    {
+      "id": "presentation_my_field_v1_wide_facies_v2",
+      "seabed_top_m": -18.93,
+      "seabed_bottom_m": -30.44,
+      "extent_m": [
+        -150.0,
+        -120.0,
+        150.0,
+        120.0
+      ],
+      "heightfield_csv": "mado_terrain/presentation_my_field_v1_wide_facies_v2_terrain.csv",
+      "facies_config": "mado_scenes/presentation_my_field_v1_wide_facies_v2.json",
+      "scene_preset": "presentation_my_field_v1_wide_facies_v2.json",
+      "available": true,
+      "_depth_note": "scripts/make_terrain.py 생성. 기복 11.52 m (수심 18.93~30.44 m). 고도 산정은 최저점 기준."
+    },
+    {
+      "id": "presentation_my_field_v1_alongtrack_facies_v3",
+      "seabed_top_m": -18.93,
+      "seabed_bottom_m": -30.44,
+      "extent_m": [
+        -150.0,
+        -120.0,
+        150.0,
+        120.0
+      ],
+      "heightfield_csv": "mado_terrain/presentation_my_field_v1_alongtrack_facies_v3_terrain.csv",
+      "facies_config": "mado_scenes/presentation_my_field_v1_alongtrack_facies_v3.json",
+      "scene_preset": "presentation_my_field_v1_alongtrack_facies_v3.json",
+      "available": true,
+      "_depth_note": "scripts/make_terrain.py 생성. 기복 11.52 m (수심 18.93~30.44 m). 고도 산정은 최저점 기준."
+    },
+    {
+      "id": "presentation_flat_alongtrack_facies_v4",
+      "seabed_top_m": -20.0,
+      "seabed_bottom_m": -20.0,
+      "extent_m": [
+        -150.0,
+        -120.0,
+        150.0,
+        120.0
+      ],
+      "heightfield_csv": "mado_terrain/presentation_flat_alongtrack_facies_v4_terrain.csv",
+      "facies_config": "mado_scenes/presentation_flat_alongtrack_facies_v4.json",
+      "scene_preset": "presentation_flat_alongtrack_facies_v4.json",
+      "available": true,
+      "_depth_note": "scripts/make_terrain.py 생성. 기복 0.00 m (수심 20.00~20.00 m). 고도 산정은 최저점 기준."
+    }
+  ],
+  "placement": {
+    "_note": "오브젝트를 깔 영역(지형 extent 안쪽 여백)과 최소 간격.",
+    "margin_m": 25.0,
+    "min_separation_m": 18.0,
+    "max_attempts_per_object": 200
+  },
+  "survey_sampling": {
+    "_note": "기존 2~4개·40~60 m보다 넓은 leg 격자를 사용한다. 5~7개 leg가 220~450 m 폭을 덮어 500 m급 지형 전체에 오브젝트·항로가 분산된다. 실제 지형 경계에 맞춰 각 leg의 길이는 자동으로 줄인다.",
+    "_platform_note": "ASV(SurfaceVessel)는 수면에 떠서 파도의 영향을 받고, 그 동요가 워터폴에 실제와 같은 왜곡을 만든다. 고도는 ASV 를 내리는 게 아니라 그 아래 매달린 트랜스듀서의 마운트 깊이(sensor_z_m)로 조절한다 — 실제 토우피시 운용과 같은 방식. 'ideal'(HoveringAUV teleport)은 파도·동요가 없어 비교/디버깅용으로만 쓴다.",
+    "platform": "ideal",
+    "range_max_m": [
+      70.0,
+      70.0
+    ],
+    "altitude_ratio": [
+      0.1,
+      0.2
+    ],
+    "depression_deg": [
+      27.0,
+      27.0
+    ],
+    "survey_heading_deg": [
+      0,
+      180
+    ],
+    "n_legs": [
+      5,
+      7
+    ],
+    "leg_spacing_m": [
+      55.0,
+      75.0
+    ],
+    "range_res_m": [
+      0.15
+    ],
+    "_depression_note": "고정 25도 (EdgeTech 4205 매뉴얼: Depression Angle = tilted down 25deg, 기계적 고정). 이전엔 25~50 랜덤이었으나 실제 센서에 없는 자유도였다.",
+    "wind_speed_ms": [
+      0.1,
+      6.0
+    ],
+    "_wind_note": "해상상태. ASV 동요 -> 트랜스듀서 자세/고도 변동 -> 워터폴 왜곡. 0.1=거의 잔잔.",
+    "track_length_fraction": [
+      0.25,
+      0.5,
+      1.0
+    ]
+  },
+  "min_object_size_m": 0.0,
+  "_min_object_size_note": "small_object_clusters가 켜져 있으므로 작은 자산을 제외하지 않는다. 1 m 미만은 scene_manifest에서 단독 배치를 금지하고 실제 크기의 복제 actor 군집으로 확장한다.",
+  "small_object_clusters": {
+    "enabled": true,
+    "member_max_size_m": 1.0,
+    "resolution_size_m": 0.15,
+    "count_range": [
+      36,
+      72
+    ],
+    "tiny_count_range": [
+      72,
+      120
+    ],
+    "extent_m": [
+      2.0,
+      6.0
+    ],
+    "patterns": [
+      "compact",
+      "linear",
+      "ring",
+      "arc",
+      "grid",
+      "paired_rows"
+    ],
+    "_note": "대규모 취득에서는 한 소형 분포의 물리 member를 36~72개, 0.15m 미만 자산은 72~120개로 늘린다. 개별 자산 크기는 바꾸지 않는다."
+  },
+  "object_material_overrides": {
+    "_comment": "자산별 음향 재질. 카테고리 단일 재질이 성립하지 않는 자산에만 쓴다(현재 anthropogenic_debris). scene_manifest 가 카테고리 값보다 이쪽을 우선 적용한다.",
+    "anthropogenic_debris/Anchor": "M_Metal_Steel",
+    "anthropogenic_debris/wood_plank_rotten": "M_Wood_Pine",
+    "anthropogenic_debris/construction_pile": "M_Pier_Concrete_01"
+  },
+  "_object_material_overrides_note": {
+    "anthropogenic_debris/Anchor": "해양 앵커 = 철제. M_Metal_Steel(7700,5900).",
+    "anthropogenic_debris/wood_plank_rotten": "썩은 목재판. M_Wood_Pine(650,3300), 기존 wooden 결정과 동일.",
+    "anthropogenic_debris/construction_pile": "건설 잔해 더미. M_Pier_Concrete_01(2400,3700)."
+  },
+  "held_objects": {
+    "_comment": "근거 부족으로 보류한 개별 자산. object_catalog 가 available=false 로 표시하고, scene_manifest 는 available 자산만 쓰므로 자동으로 빠진다. 근거가 생기면 여기서 지우고 카탈로그를 다시 만들면 된다.",
+    "anthropogenic_debris/brick_piles": "벽돌 = 소성 점토. ceramics 와 같은 공백 — materials.csv 에 소성 점토 항목이 없다.",
+    "anthropogenic_debris/dirt_brick_pile": "흙+벽돌 혼합. 소성 점토 임피던스 미확보에 더해 혼합비도 근거가 없다.",
+    "anthropogenic_debris/tires2": "폐타이어 = 고무. materials.csv 에 고무 항목이 없다."
+  },
+  "wreck_corridor_distribution": {
+    "enabled": true,
+    "survey_corridor_fraction": 0.9,
+    "survey_cross_track_m": [
+      5.0,
+      18.0
+    ],
+    "min_separation_m": 35.0,
+    "_note": "난파선은 바닥 클러터 patch처럼 한곳에 뭉치지 않고, 90%를 실제 각 survey leg의 좌우 5~18m에 개별 분산한다. 넓어진 5~7개 leg 격자 전체에 흩어지며, 저고도에서 range 밖 표적이 대량으로 생기는 것을 막는다. 큰 선체끼리 겹쳐 GT가 모호해지는 것을 막기 위해 난파선 상호 간 최소 35m를 둔다."
+  },
+  "category_distribution_clusters": {
+    "geological_clutter": {
+      "enabled": true,
+      "patch_count_range": [
+        0,
+        0
+      ],
+      "radius_m": [
+        5.0,
+        18.0
+      ],
+      "min_patch_separation_m": 12.0,
+      "survey_corridor_fraction": 1.0,
+      "survey_cross_track_m": [
+        5.0,
+        18.0
+      ]
+    },
+    "sediment_feature": {
+      "enabled": true,
+      "patch_count_range": [
+        0,
+        0
+      ],
+      "radius_m": [
+        8.0,
+        25.0
+      ],
+      "min_patch_separation_m": 18.0,
+      "survey_corridor_fraction": 1.0,
+      "survey_cross_track_m": [
+        5.0,
+        18.0
+      ]
+    },
+    "biological_clutter": {
+      "enabled": true,
+      "patch_count_range": [
+        2,
+        5
+      ],
+      "radius_m": [
+        6.0,
+        20.0
+      ],
+      "min_patch_separation_m": 20.0,
+      "survey_corridor_fraction": 0.75,
+      "survey_cross_track_m": [
+        5.0,
+        18.0
+      ]
+    },
+    "anthropogenic_debris": {
+      "enabled": true,
+      "patch_count_range": [
+        2,
+        4
+      ],
+      "radius_m": [
+        5.0,
+        15.0
+      ],
+      "min_patch_separation_m": 16.0,
+      "survey_corridor_fraction": 0.7,
+      "survey_cross_track_m": [
+        5.0,
+        18.0
+      ]
+    }
+  },
+  "vertical_beam_deg": 50.0,
+  "_large_dataset_profile_applied": {
+    "sensor_geometry": {
+      "depression_deg": 27.0,
+      "vertical_ray_span_deg": 50.0,
+      "range_min_m": 0.5,
+      "range_max_cap_m": 70.0,
+      "beam_reach_fraction": 0.95,
+      "min_altitude_to_range_ratio": 0.05,
+      "track_dx_min_m": 0.1,
+      "track_dx_max_m": 0.2,
+      "track_dx_resolution_fraction": 0.8,
+      "altitude_available_fraction": [
+        0.8,
+        0.95
+      ],
+      "_note": "nominal 수직빔폭과 ray support를 모두 50도로 둔다. 68도 support 시험은 고도 2.1 m·range 41.5 m에서 얕은 꼬리 구간을 균일각 레이로 충분히 채우지 못해 점선 호 모양의 수치 아티팩트를 만들었으므로 production 기본값으로 채택하지 않았다. production 기본 복각은 27도이며, 고도는 사용 가능 물기둥의 80~95%, range_max=min(70m,0.95*항로 footprint 최원거리,고도/0.05), range_min=0.5m다. 즉 고도 대비 최대 20배 range까지 허용하여 넓은 실제 SSS 스와스를 확보하되, 빔 기하·실제 항로 footprint·70m 정격 상한은 유지한다. track_dx는 최대거리에서의 along-track 빔 해상도 R·sin(0.26°)의 80%를 넘지 않도록 0.10~0.20 m로 scene별 조절해, 넓은 스와스의 중복 ping만 줄인다."
+    },
+    "user_controls": {
+      "floor_clutter_pct": 0.0,
+      "wreck_pct": 25.0,
+      "wreck_tilt_deg": 35.0,
+      "noise_level": 1.0,
+      "speckle_strength": 1.0,
+      "texture_cv": 0.0,
+      "texture_shape": 0.0,
+      "depression_deg": 27.0,
+      "scene_acoustic_variation": {
+        "noise_level_multiplier": [
+          0.85,
+          1.15
+        ],
+        "speckle_strength_delta": [
+          -0.12,
+          0.12
+        ],
+        "display_variant_dynamic_range_db": [
+          45.0,
+          65.0
+        ],
+        "_note": "각 scene에서 base noise_level에 0.85~1.15 배를 곱하고, base speckle_strength에는 -0.12~+0.12를 더한 뒤 0~1로 clamp한다. 또 canonical 50 dB PNG와 별개로 45~65 dB clipping PNG를 하나 추가한다. 난수 시드 변화와 별개로 취득·표시 조건 자체의 작은 다양성을 준다."
+      }
+    },
+    "source": "scene_config.json:large_dataset_profile"
+  }
+}

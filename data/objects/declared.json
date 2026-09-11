@@ -1,0 +1,12 @@
+{
+  "_comment": "아직 도착하지 않은 자산 선언. object_catalog.py 가 available=false 로 카탈로그에 넣고, 파일이 들어오면 자동으로 true 가 된다.",
+  "_status_2026_07_31": "FBX 35개(shipwreck 18 / metal 12 / wooden 5)가 실제로 배포되어 전부 내려받았다. 이전에 선언해뒀던 이름 중 'dallido_ship_reconstructed' 는 이번 업데이트에 없고, '금양6호' 는 'keumyang6' 로 파일명이 바뀌었다. 둘 다 선언에서 제거한다 — 다시 올라오면 여기 추가하면 된다.",
+  "assets": [
+    {
+      "category": "archaeological_ship",
+      "name": "dallido_ship_reconstructed",
+      "ext": "fbx",
+      "_note": "Dallido Shipwreck — CSV 에는 있으나 3D 파일 미도착. data/objects/archaeological_ship/original/dallido_ship_reconstructed.fbx 로 넣으면 자동 인식된다."
+    }
+  ]
+}

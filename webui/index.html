@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SSS 데이터 취득 콘솔</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>SSS 데이터 취득 콘솔</h1>
+  <span class="badge" id="hdr-geom">—</span>
+  <span class="badge" id="hdr-rays">—</span>
+  <span class="sp"></span>
+  <button id="btn-save">설정 저장</button>
+  <button id="btn-preview">미리보기 촬영</button>
+  <button class="danger" id="btn-stop" disabled>중지</button>
+</header>
+
+<div class="layout">
+  <div>
+    <section class="card" id="c-sensor">
+      <h2><span class="caret">▼</span> 센서 파라미터</h2>
+      <div class="body" id="sensor-form"></div>
+    </section>
+
+    <section class="card" id="c-env">
+      <h2><span class="caret">▼</span> 환경 (해수 · 해상 상태)</h2>
+      <div class="body" id="env-form"></div>
+    </section>
+
+    <section class="card" id="c-field">
+      <h2><span class="caret">▼</span> 필드 (지형)</h2>
+      <div class="body">
+        <div class="row"><label>지형</label><select id="terrain-sel"></select></div>
+        <div class="kv" id="terrain-kv" style="margin-top:8px"></div>
+        <div class="btns"><button id="btn-newterrain">지형 만들기</button></div>
+      </div>
+    </section>
+
+    <section class="card" id="c-obj">
+      <h2><span class="caret">▼</span> 오브젝트</h2>
+      <div class="body">
+        <div class="row" title="다음 '씬 생성' 때 난파선마다 roll과 pitch를 독립적으로 이 범위에서 무작위로 뽑습니다. 이미 생성한 씬은 아래 선택 편집에서 직접 바꿀 수 있습니다.">
+          <label>난파선 기울기 최대 <span class="u">roll/pitch, °</span></label>
+          <input type="number" id="manual-wreck-tilt" value="35" min="0" max="90" step="1"></div>
+        <p class="hint" style="margin:0 0 8px">다음 수동 씬 생성에만 적용됩니다. 35°면 roll·pitch를 각각 −35~+35°에서 독립적으로 무작위 추출합니다. yaw(방위)는 기존처럼 0~360°입니다.</p>
+        <div id="cat-form"></div>
+        <div class="btns">
+          <button id="btn-catalog">자산 라이브러리</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="c-survey">
+      <h2><span class="caret">▼</span> 조사 계획 · 씬 생성</h2>
+      <div class="body">
+        <div class="row"><label>플랫폼</label>
+          <select id="platform"><option value="ideal">ideal (텔레포트)</option>
+          <option value="asv">asv (물리 항주)</option></select></div>
+        <div class="row"><label>시드</label><input type="number" id="seed" value="7"></div>
+        <div class="row"><label>leg 수 <span class="u">덮어쓰기</span></label>
+          <input type="number" id="n_legs" value="1" min="1" max="8"></div>
+        <div class="row" title="켜면 위 센서 패널에서 맞춘 값을 그대로 씁니다. 끄면 씬 생성 때마다 무작위로 뽑습니다(데이터셋 다양성용).">
+          <label>내 센서 값 사용</label>
+          <input type="checkbox" class="chk" id="use-my-sensor" checked></div>
+        <h4 style="font-size:11px;color:var(--dim);text-transform:uppercase;
+          letter-spacing:.4px;margin:12px 0 6px;border-bottom:1px solid var(--line);
+          padding-bottom:4px">주행 경로</h4>
+        <div id="track-form"></div>
+        <div class="btns">
+          <button id="btn-manifest">씬 생성</button>
+        </div>
+        <div class="kv" id="scene-kv" style="margin-top:10px"></div>
+        <h4 style="font-size:11px;color:var(--dim);text-transform:uppercase;
+          letter-spacing:.4px;margin:12px 0 0;border-bottom:1px solid var(--line);
+          padding-bottom:4px">배치된 오브젝트</h4>
+        <div class="placed" id="placed"></div>
+      </div>
+    </section>
+  </div>
+
+  <div>
+    <section class="card">
+      <h2><span class="caret">▼</span> 씬 시각화</h2>
+      <div class="body">
+        <div class="tabs" id="map-tabs">
+          <button data-v="3d" class="on">3D</button>
+          <button data-v="2d">평면도</button>
+        </div>
+        <div class="viz" id="pane-map3d">
+          <h3>지형 표면 + 주행 트랙 + 스와스 + 실제 오브젝트 메쉬</h3>
+          <canvas id="cv-terrain" class="gl tall"></canvas>
+          <div class="legend">
+            <span><i style="background:#b8a05a"></i>얕음</span>
+            <span><i style="background:#1a4257"></i>깊음</span>
+            <span><i style="background:#fafcff"></i>주행 트랙</span>
+            <span><i style="background:#4aa8ff;opacity:.5"></i>스와스</span>
+            <span><i style="background:#dbb352"></i>난파선</span>
+            <span><i style="background:#9ea9b8"></i>클러터</span>
+          </div>
+          <div class="viz-tools">
+            <button data-fit="terr">시점 맞춤</button>
+            <button id="btn-beam">센서 빔 보기</button>
+            <span class="note" id="edit-note">배치된 오브젝트를 클릭하면 붉게 표시된다.
+              <b>Ctrl+드래그</b>=이동, <b>Ctrl+Shift+드래그</b>=회전.</span>
+          </div>
+          <div class="legend" id="beam-legend" style="display:none">
+            <span><i style="background:#26d9f2"></i>빔 (range_min~끝)</span>
+            <span><i style="background:#ff9e1a"></i>range_min 호</span>
+            <span><i style="background:#40e573"></i>지형에 닿은 지점</span>
+            <span><i style="background:#f24d52"></i>최대거리까지 가도 못 닿음</span>
+          </div>
+          <div class="kv" id="beam-kv" style="margin-top:6px"></div>
+          <div id="sel-edit" style="display:none"></div>
+        </div>
+        <div class="viz" id="pane-map2d" style="display:none">
+          <h3>위에서 본 그림</h3><svg id="viz-map" viewBox="0 0 700 460"></svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="c-dataset">
+      <h2><span class="caret">▼</span> 데이터셋 취득</h2>
+      <div class="body">
+        <p class="hint" style="margin:0 0 8px">
+          센서 설정을 고정하고 지형·경로·배치를 시드 기반으로 다양화한다.
+          각 장면 결과는 하나의 sample 폴더에 모인다.
+        </p>
+        <div class="btns compact"><button id="btn-acq-help">취득 설명</button></div>
+        <div class="row"><label>데이터셋 이름</label>
+          <input id="lg-name" value="westsea_sss" pattern="[A-Za-z0-9_-]+"></div>
+        <div class="row"><label>씬 수 <span class="u">세션 수</span></label>
+          <input type="number" id="lg-n" value="100" min="1" max="5000"></div>
+        <div class="row"><label>시작 시드</label>
+          <input type="number" id="lg-seed" value="100000"></div>
+        <div class="row"><label>바닥 클러터 배치량 <span class="u">%</span></label>
+          <input type="number" id="lg-floor-pct" value="200" min="0" max="300" step="25"></div>
+        <div class="row"><label>난파선 배치량 <span class="u">%</span></label>
+          <input type="number" id="lg-wreck-pct" value="200" min="0" max="300" step="25"></div>
+        <div class="row"><label>난파선 기울기 최대 <span class="u">roll/pitch, °</span></label>
+          <input type="number" id="lg-wreck-tilt" value="90" min="0" max="90" step="1"></div>
+        <div class="row"><label>복각 <span class="u">°</span></label>
+          <input type="number" id="lg-depression" value="35" min="25.1" max="60" step="0.5"></div>
+        <div class="row"><label>수신기 노이즈 배율</label>
+          <input type="number" id="lg-noise-level" value="1" min="0" max="4" step="0.1"></div>
+        <div class="row"><label>스페클 강도</label>
+          <input type="number" id="lg-speckle-strength" value="1" min="0" max="1" step="0.05"></div>
+        <div class="row"><label>저주파 반사 텍스처 CV</label>
+          <input type="number" id="lg-texture-cv" value="0" min="0" max="1" step="0.05"></div>
+        <h4 class="subhead">저장할 산출물</h4>
+        <div class="output-grid">
+          <label><input type="checkbox" id="out-waterfall" checked> 워터폴 PNG</label>
+          <label><input type="checkbox" id="out-trueaspect"> 실제 종횡비 PNG</label>
+          <label><input type="checkbox" id="out-raw-npy"> 원시 NumPy</label>
+          <label><input type="checkbox" id="out-proc-npy" checked> 처리 dB NumPy</label>
+          <label><input type="checkbox" id="out-mask" checked> GT 마스크</label>
+          <label><input type="checkbox" id="out-bbox" checked> YOLO bbox</label>
+          <label><input type="checkbox" id="out-overlay"> bbox 검수 이미지</label>
+          <label><input type="checkbox" id="out-preview" checked> 씬 미리보기</label>
+          <label><input type="checkbox" id="out-zip"> 완료 후 ZIP 내보내기</label>
+        </div>
+        <ul class="warn-list compact" id="output-warnings"></ul>
+        <div class="kv" style="margin-top:10px">
+          <div>바닥 클러터</div><div>100%=이전 production 밀도 · 기본 200%=암석/자갈·퇴적물의 수와 패치 수를 두 배로 늘려 실제 스와스 안에 집중 배치 · 300%는 취득 시간이 크게 늘 수 있음</div>
+          <div>난파선</div><div>100%=이전 난파선 수(대략 14~15척) · 기본 200%=약 28~30척. 90%는 각 조사 leg의 좌우 5~18 m 스와스에 분산 배치해 경로 전체에 GT가 나타남 · 0%=난파선 없음</div>
+          <div>난파선 기울기</div><div>각 난파선의 roll과 pitch를 각각 −설정값~+설정값에서 독립적으로 뽑음. 기본 ±90°는 전복·측면 자세까지 포함한다. 엔진은 회전된 메시의 실제 세로 높이를 계산한 뒤 매몰률을 적용하므로, 기울기 때문에 공중에 뜨지 않도록 배치한다. yaw(방위)는 항상 0~360°로 무작위.</div>
+          <div>센서</div><div>수직빔/ray support 50° · 고도 80–95% · range_min 0.5 m · range_max는 복각·항로·좌우 스와스 최원거리 해저 95%(상한 70 m)</div>
+          <div>수신기 노이즈</div><div>전자잡음의 평균 power 배율. 1=기본, 0=전자잡음 없음, 2=+3.01 dB</div>
+          <div>스페클</div><div>월드 좌표에 고정된 복소 미세산란의 diffuse 비율. 1=현재 기본 완전-speckle, 0=미세산란 없이 결정론적 반사만 사용</div>
+          <div>반사 텍스처</div><div>해저 반사 전력의 느리고 공간적으로 상관된 변동. CV=0은 끔, 0.25 정도는 약한 패치 변화, 1은 매우 강한 이질성. 전자잡음과 별개</div>
+          <div>맵</div><div>available=true인 모든 맵을 섞어 순환</div>
+          <div>배경 객체</div><div>암석·모래 퇴적 더미를 여러 패치로 집중 배치하고 소형 군집 member를 확대</div>
+          <div>수치 ray 예산</div><div>빈 원거리 계산을 없애고 0.15 m 간격 조건을 지키도록 씬별 산정</div>
+          <div>미리보기</div><div>선택 시 각 sample에 지형·오브젝트 탑뷰 저장</div>
+          <div>중지</div><div>완료된 세션은 즉시 index.json에 기록되어 그대로 보존</div>
+          <div>출력</div><div><code>samples/scene_NNNNNN/</code>에 장면별 저장</div>
+        </div>
+        <div class="btns">
+          <button id="btn-large-dry">계획만 생성</button>
+          <button class="primary" id="btn-large">데이터셋 취득 시작</button>
+        </div>
+        <ol class="hint" style="margin:10px 0 0;padding-left:20px;line-height:1.65">
+          <li>센서와 출력 항목을 확인한다.</li>
+          <li><b>계획만 생성</b>으로 예상 종료를 확인한다.</li>
+          <li><b>데이터셋 취득 시작</b>을 누른다.</li>
+          <li>실행 패널에서 진행률·예상 종료·출력 폴더를 본다. 중지는 완료분을 지우지 않는다.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span class="caret">▼</span> 실행</h2>
+      <div class="body">
+        <div class="kv" id="run-kv"></div>
+        <div id="prog" style="display:none">
+          <div class="prog-bar"><div id="prog-fill"></div></div>
+          <div id="prog-txt" class="prog-txt">—</div>
+        </div>
+        <div id="preview-box" style="display:none">
+          <div class="viz"><h3 id="preview-cap">시뮬레이터 탑뷰 미리보기</h3>
+            <img id="preview-img" alt="" style="width:100%;display:block;border-radius:6px;background:#000;cursor:zoom-in">
+          </div>
+        </div>
+        <pre class="log" id="log">아직 실행하지 않았습니다.</pre>
+        <div class="gallery" id="result" style="margin-top:10px"></div>
+      </div>
+    </section>
+
+    <section class="card collapsed">
+      <h2><span class="caret">▼</span> 지난 취득</h2>
+      <div class="body"><div class="gallery" id="runs"></div></div>
+    </section>
+  </div>
+</div>
+
+<div id="modal"><img id="modal-img" alt=""></div>
+
+<div id="acq-help" class="dialog-layer" role="dialog" aria-modal="true" aria-labelledby="acq-help-title">
+  <div class="dialog-box">
+    <div class="dialog-head"><b id="acq-help-title">데이터셋 취득 설명</b><button id="btn-acq-help-close">닫기</button></div>
+    <div class="help-grid">
+      <section>
+        <h3>사용자가 고정</h3>
+        <p>왼쪽 <b>센서·환경</b>: 주파수, 대역폭, 빔폭, 음속·밀도, 신호처리.</p>
+        <p><b>이 탭</b>: 플랫폼, 복각, 노이즈·스페클 기준값, 텍스처, 배치량·기울기.</p>
+      </section>
+      <section>
+        <h3>씬마다 무작위</h3>
+        <p>지형 균형 순환 · 경로 길이 25/50/100% · 방위 0–180° · leg 5–7개 · 간격 55–75m.</p>
+        <p>고도는 사용 가능 물기둥의 80–95%, 노이즈는 기준값×0.85–1.15, 스페클은 기준값±0.12.</p>
+        <p>객체 수는 종류별 범위×배치량이고, 종류·위치·자세·매몰·seed가 바뀐다.</p>
+      </section>
+      <section>
+        <h3>기하에 따라 자동</h3>
+        <p>최대 range, ping 간격(0.10–0.20m), 수직·수평 ray 수, 지형 경계 내 실제 경로.</p>
+        <p>빔이 닿지 않는 빈 bin·중복 ping을 줄이고, 지형 기복에도 ray 해상도를 유지하기 위해 자동 계산한다.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+
+<div id="lib">
+  <div class="lib-box">
+    <div class="lib-head">
+      <b>자산 라이브러리</b>
+      <span class="badge" id="lib-count">—</span>
+      <select id="lib-cat"><option value="">전체 카테고리</option></select>
+      <label class="mini"><input type="checkbox" id="lib-only-on"> 사용중만</label>
+      <span style="flex:1"></span>
+      <button id="lib-save" class="primary">적용</button>
+      <button id="lib-close">닫기</button>
+    </div>
+    <div class="lib-body">
+      <div class="lib-list" id="lib-list"></div>
+      <div class="lib-prev">
+        <canvas id="cv-obj" class="gl"></canvas>
+        <div class="asset-photos" id="lib-photos"></div>
+        <div class="kv" id="lib-kv"></div>
+        <div class="btns"><button id="lib-toggle">씬에서 제외</button></div>
+        <p class="hint">제외한 자산은 씬 생성 시 뽑히지 않는다.
+          <code>scene_config.json → excluded_objects</code> 에 저장된다.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div id="tgen">
+  <div class="lib-box">
+    <div class="lib-head">
+      <b>지형 만들기</b>
+      <span class="badge" id="tg-stat">—</span>
+      <select id="tg-preset"></select>
+      <span style="flex:1"></span>
+      <button class="primary" id="tg-create">생성 · 등록</button>
+      <button id="tg-close">닫기</button>
+    </div>
+    <div class="lib-body tgen-body">
+      <div class="tg-form" id="tg-form"></div>
+      <div class="lib-prev">
+        <canvas id="cv-tgen" class="gl"></canvas>
+        <div class="kv" id="tg-kv"></div>
+        <p class="hint" id="tg-hint">
+          미리보기는 실제 생성과 <b>같은 함수</b>(<code>make_terrain.build</code>)로 만든다.
+          생성하면 CSV·씬 JSON 을 소스와 <b>패키지 런타임 양쪽</b>에 쓰고
+          <code>scene_config.json</code> 에 등록한다. 재빌드·재패킹 불필요.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="gl.js"></script>
+<script src="viz3d.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

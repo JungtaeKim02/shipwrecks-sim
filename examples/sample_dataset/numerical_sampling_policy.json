@@ -1,0 +1,6 @@
+{
+  "policy": "raise-elevation-ray-budget-to-required",
+  "reason": "씬 고도와 선택한 복각의 빔 도달거리에 정합된 range_max에서 고정 range_res가 요구하는 이웃 ray 간격을 유지한다. elev_ray_max는 센서 물리가 아닌 수치 근사 예산이다.",
+  "sensor_snapshot_default_elev_ray_max": 8000,
+  "per_scene_field": "plan.elev_ray_max_execution"
+}

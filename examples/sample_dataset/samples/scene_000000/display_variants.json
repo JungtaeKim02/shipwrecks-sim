@@ -1,0 +1,11 @@
+{
+  "canonical": {
+    "directory": "sss/waterfall",
+    "dynamic_range_db": 50.0
+  },
+  "clip_randomized": {
+    "directory": "sss/waterfall_variant",
+    "dynamic_range_db": 62.66,
+    "same_linear_db_as_canonical": true
+  }
+}
