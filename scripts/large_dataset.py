@@ -262,10 +262,12 @@ def _request_stop(signum, _frame):
             pass
 
 
-def _force_track_fraction(scene, fraction):
+def _force_track_fraction(scene, fraction, full_length_m=None):
     survey = scene["survey"]
-    full = float(survey.get("track_full_length_m") or
+    full = float(full_length_m or survey.get("track_full_length_m") or
                  (float(survey["track_x1_m"]) - float(survey["track_x0_m"])))
+    if full <= 0:
+        raise SystemExit("track_full_length_m은 0보다 커야 합니다.")
     half = max(10.0, round(full * float(fraction) / 2.0, 1))
     survey["track_x0_m"] = -half
     survey["track_x1_m"] = half
@@ -471,7 +473,7 @@ def build_plan(spec, root):
         scene_plan_cfg.setdefault("survey_sampling", {})["track_length_fraction"] = [
             fraction_plan[i]]
         scene = sm.sample_scene(scene_seed, scene_plan_cfg, catalog, terrain_plan[i])
-        _force_track_fraction(scene, fraction_plan[i])
+        _force_track_fraction(scene, fraction_plan[i], spec.get("track_full_length_m"))
         sv = scene["survey"]
 
         # Sensor acoustics are fixed, while range geometry follows the actual

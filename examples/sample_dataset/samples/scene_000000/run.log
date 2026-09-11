@@ -1,17 +1,17 @@
-$ /usr/bin/python3 -u ./scripts/preview_scene.py --manifest ./examples/sample_dataset/manifests/scenes.jsonl --manifest_index 0 --out ./examples/sample_dataset/samples/scene_000000/preview.png --size 768
+$ /usr/bin/python3 -u /home/artemis-1/holoocean_ws/scripts/preview_scene.py --manifest /home/artemis-1/holoocean_ws/examples/sample_dataset_long2/manifests/scenes.jsonl --manifest_index 0 --out /home/artemis-1/holoocean_ws/examples/sample_dataset_long2/samples/scene_000000/preview.png --size 768
 
 [manifest] scene_20260911 적용 — 지형 presentation_flat_alongtrack_facies_v4, 오브젝트 1761개 (CLI 우선: platform)
 [range] intrinsic c/(2B)=0.0119 m, output spacing=0.1500 m (12.6x coarser; decimated output)
 [preview] 필드 지형 프리셋 = presentation_flat_alongtrack_facies_v4.json
 [preview] 카메라 (0, 0, 142.2) m, 해저 위 162 m, pitch 90°, 768x768 px
 [scene] scene_20260911: 오브젝트 1761개 스폰 (750개씩 분할, 지형 presentation_flat_alongtrack_facies_v4)
-[preview] 저장: ./examples/sample_dataset/samples/scene_000000/preview.png  (화면 폭 약 336 m, 밝기 137)
+[preview] 저장: /home/artemis-1/holoocean_ws/examples/sample_dataset_long2/samples/scene_000000/preview.png  (화면 폭 약 336 m, 밝기 137)
 
-$ /usr/bin/python3 -u ./scripts/acquire_sss.py ideal --manifest ./examples/sample_dataset/manifests/scenes.jsonl --manifest_index 0 --frequency_khz 520 --sound_speed_ms 1500 --water_density 1024 --bandwidth_khz 63 --signal_model coherent --pulse_duration_ms 1.0 --matched_filter true --matched_filter_max_taps 129 --scatter_correlation_length_m 0.05 --azimuth_ray_max 65 --elev_ray_max 8000 --texture_shape 0.0 --texture_correlation_length_m 1.0 --horizontal_beam_deg 0.26 --vertical_beam_deg 50 --survey lawnmower --beam_pattern true --incidence_cosine true --geometric_spreading true --multipath false --gt_labels true --gt_label_tag wreck --gt_fill_radius_px 5 --gt_bbox_class_id 0 --gt_bbox_class_name wreck --gt_bbox_min_area_px 16 --gt_bbox_padding_px 2 --gt_bbox_merge_gap_px 24 --gt_bbox_fragment_max_area_px 64 --save_waterfall_png true --save_true_aspect_png false --save_raw_numpy false --save_processed_numpy true --save_mask true --save_bbox true --save_bbox_overlay true --tvg false --absorption true --slant_range_correction false --intensity_normalization true --crop_mode geometric --add_sigma 0 --noise_power auto --noise_floor auto --noise_seed 1115906388 --display_noise_quantile 0.99 --display_dynamic_range_db 50.0 --mult_sigma 0.5 --speckle_distribution complex_gaussian --speckle_seed 1115906387 --speckle_spatial_mode world --wind_speed_ms 3.61 --current_ms [0, 0, 0] --vertical_ray_span_deg 50.0 --dataset_root ./examples/sample_dataset --dataset_sample_id scene_000000 --depression_deg 27.0 --range_min_m 0.5 --range_max_m 69.3 --range_reference_altitude_m 16.58 --track_dx_m 0.2 --noise_level 1.0693 --speckle_strength 0.9041 --display_variant_dynamic_range_db 62.66
+$ /usr/bin/python3 -u /home/artemis-1/holoocean_ws/scripts/acquire_sss.py ideal --manifest /home/artemis-1/holoocean_ws/examples/sample_dataset_long2/manifests/scenes.jsonl --manifest_index 0 --frequency_khz 520 --sound_speed_ms 1500 --water_density 1024 --bandwidth_khz 63 --signal_model coherent --pulse_duration_ms 1.0 --matched_filter true --matched_filter_max_taps 129 --scatter_correlation_length_m 0.05 --azimuth_ray_max 65 --elev_ray_max 8000 --texture_shape 0.0 --texture_correlation_length_m 1.0 --horizontal_beam_deg 0.26 --vertical_beam_deg 50 --survey lawnmower --beam_pattern true --incidence_cosine true --geometric_spreading true --multipath false --gt_labels true --gt_label_tag wreck --gt_fill_radius_px 5 --gt_bbox_class_id 0 --gt_bbox_class_name wreck --gt_bbox_min_area_px 16 --gt_bbox_padding_px 2 --gt_bbox_merge_gap_px 24 --gt_bbox_fragment_max_area_px 64 --save_waterfall_png true --save_true_aspect_png false --save_raw_numpy false --save_processed_numpy true --save_mask true --save_bbox true --save_bbox_overlay true --tvg false --absorption true --slant_range_correction false --intensity_normalization true --crop_mode geometric --add_sigma 0 --noise_power auto --noise_floor auto --noise_seed 1115906388 --display_noise_quantile 0.99 --display_dynamic_range_db 50.0 --mult_sigma 0.5 --speckle_distribution complex_gaussian --speckle_seed 1115906387 --speckle_spatial_mode world --wind_speed_ms 3.61 --current_ms [0, 0, 0] --vertical_ray_span_deg 50.0 --dataset_root /home/artemis-1/holoocean_ws/examples/sample_dataset_long2 --dataset_sample_id scene_000000 --depression_deg 27.0 --range_min_m 0.5 --range_max_m 69.3 --range_reference_altitude_m 16.58 --track_dx_m 0.2 --noise_level 1.0693 --speckle_strength 0.9041 --display_variant_dynamic_range_db 62.66
 
 [manifest] scene_20260911 적용 — 지형 presentation_flat_alongtrack_facies_v4, 오브젝트 1761개 (CLI 우선: platform, range_max_m, depression_deg, wind_speed_ms, range_min_m, track_dx_m, noise_level, speckle_strength, display_variant_dynamic_range_db, range_reference_altitude_m)
 [range] intrinsic c/(2B)=0.0119 m, output spacing=0.1500 m (12.6x coarser; decimated output)
-[sss ideal] survey=lawnmower legs=5 heading=16deg spacing=65.1m -> ./examples/sample_dataset/samples/scene_000000
+[sss ideal] survey=lawnmower legs=5 heading=16deg spacing=65.1m -> /home/artemis-1/holoocean_ws/examples/sample_dataset_long2/samples/scene_000000
 [scene] 필드 지형 프리셋 = presentation_flat_alongtrack_facies_v4.json
 [ray] 고도 16.6 m, 최대거리 69 m, ray span 50° -> 수직 레이 간격 0.0306° (레이 1638개)
 [ray] along-track footprint sampling 0.0371° (8 rays, target spacing 0.050m at 69.3m)
@@ -22,294 +22,294 @@ Elevation Rays 1638
 Azimuth Rays 8
 Elevation Rays 1638
 [scene] scene_20260911: 오브젝트 1761개 스폰 (750개씩 분할, 지형 presentation_flat_alongtrack_facies_v4)
-[progress] ping 0/100 0.0% 경과 0s 남음 -
-[progress] ping 1/100 1.0% 경과 0s 남음 3s
-[progress] ping 3/100 3.0% 경과 0s 남음 3s
-[progress] ping 5/100 5.0% 경과 0s 남음 3s
-[progress] ping 7/100 7.0% 경과 0s 남음 3s
-[progress] ping 9/100 9.0% 경과 0s 남음 3s
-[progress] ping 11/100 11.0% 경과 0s 남음 3s
-[progress] ping 13/100 13.0% 경과 0s 남음 3s
-[progress] ping 15/100 15.0% 경과 0s 남음 3s
-[progress] ping 17/100 17.0% 경과 1s 남음 3s
-[progress] ping 19/100 19.0% 경과 1s 남음 3s
-[progress] ping 21/100 21.0% 경과 1s 남음 3s
-[progress] ping 23/100 23.0% 경과 1s 남음 2s
-[progress] ping 25/100 25.0% 경과 1s 남음 2s
-[progress] ping 27/100 27.0% 경과 1s 남음 2s
-[progress] ping 29/100 29.0% 경과 1s 남음 2s
-[progress] ping 31/100 31.0% 경과 1s 남음 2s
-[progress] ping 33/100 33.0% 경과 1s 남음 2s
-[progress] ping 35/100 35.0% 경과 1s 남음 2s
-[progress] ping 37/100 37.0% 경과 1s 남음 2s
-[progress] ping 39/100 39.0% 경과 1s 남음 2s
-[progress] ping 41/100 41.0% 경과 1s 남음 2s
-[progress] ping 43/100 43.0% 경과 1s 남음 2s
-[progress] ping 45/100 45.0% 경과 1s 남음 2s
-[progress] ping 47/100 47.0% 경과 2s 남음 2s
-[progress] ping 49/100 49.0% 경과 2s 남음 2s
-[progress] ping 51/100 51.0% 경과 2s 남음 2s
-[progress] ping 53/100 53.0% 경과 2s 남음 2s
-[progress] ping 55/100 55.0% 경과 2s 남음 1s
-[progress] ping 57/100 57.0% 경과 2s 남음 1s
-[progress] ping 59/100 59.0% 경과 2s 남음 1s
-[progress] ping 61/100 61.0% 경과 2s 남음 1s
-[progress] ping 63/100 63.0% 경과 2s 남음 1s
-[progress] ping 65/100 65.0% 경과 2s 남음 1s
-[progress] ping 67/100 67.0% 경과 2s 남음 1s
-[progress] ping 69/100 69.0% 경과 2s 남음 1s
-[progress] ping 71/100 71.0% 경과 2s 남음 1s
-[progress] ping 73/100 73.0% 경과 2s 남음 1s
-[progress] ping 75/100 75.0% 경과 2s 남음 1s
-[progress] ping 77/100 77.0% 경과 2s 남음 1s
-[progress] ping 79/100 79.0% 경과 3s 남음 1s
-[progress] ping 81/100 81.0% 경과 3s 남음 1s
-[progress] ping 83/100 83.0% 경과 3s 남음 1s
-[progress] ping 85/100 85.0% 경과 3s 남음 0s
-[progress] ping 87/100 87.0% 경과 3s 남음 0s
-[progress] ping 89/100 89.0% 경과 3s 남음 0s
-[progress] ping 91/100 91.0% 경과 3s 남음 0s
-[progress] ping 93/100 93.0% 경과 3s 남음 0s
-[progress] ping 95/100 95.0% 경과 3s 남음 0s
-[progress] ping 97/100 97.0% 경과 3s 남음 0s
-[progress] ping 99/100 99.0% 경과 3s 남음 0s
-[progress] ping 100/100 100.0% 경과 3s 남음 0s
-[leg 1/5] start=(27,-128) yaw=16  pings=100
+[progress] ping 0/500 0.0% 경과 0s 남음 -
+[progress] ping 9/500 1.8% 경과 0s 남음 16s
+[progress] ping 19/500 3.8% 경과 1s 남음 16s
+[progress] ping 29/500 5.8% 경과 1s 남음 15s
+[progress] ping 39/500 7.8% 경과 1s 남음 15s
+[progress] ping 49/500 9.8% 경과 2s 남음 15s
+[progress] ping 59/500 11.8% 경과 2s 남음 14s
+[progress] ping 69/500 13.8% 경과 2s 남음 14s
+[progress] ping 79/500 15.8% 경과 3s 남음 14s
+[progress] ping 89/500 17.8% 경과 3s 남음 13s
+[progress] ping 99/500 19.8% 경과 3s 남음 13s
+[progress] ping 109/500 21.8% 경과 4s 남음 13s
+[progress] ping 119/500 23.8% 경과 4s 남음 12s
+[progress] ping 129/500 25.8% 경과 4s 남음 12s
+[progress] ping 139/500 27.8% 경과 5s 남음 12s
+[progress] ping 149/500 29.8% 경과 5s 남음 11s
+[progress] ping 159/500 31.8% 경과 5s 남음 11s
+[progress] ping 169/500 33.8% 경과 5s 남음 11s
+[progress] ping 179/500 35.8% 경과 6s 남음 10s
+[progress] ping 189/500 37.8% 경과 6s 남음 10s
+[progress] ping 199/500 39.8% 경과 6s 남음 10s
+[progress] ping 209/500 41.8% 경과 7s 남음 9s
+[progress] ping 219/500 43.8% 경과 7s 남음 9s
+[progress] ping 229/500 45.8% 경과 7s 남음 9s
+[progress] ping 239/500 47.8% 경과 8s 남음 8s
+[progress] ping 249/500 49.8% 경과 8s 남음 8s
+[progress] ping 259/500 51.8% 경과 8s 남음 8s
+[progress] ping 269/500 53.8% 경과 9s 남음 8s
+[progress] ping 279/500 55.8% 경과 9s 남음 7s
+[progress] ping 289/500 57.8% 경과 9s 남음 7s
+[progress] ping 299/500 59.8% 경과 10s 남음 7s
+[progress] ping 309/500 61.8% 경과 10s 남음 6s
+[progress] ping 319/500 63.8% 경과 10s 남음 6s
+[progress] ping 329/500 65.8% 경과 11s 남음 6s
+[progress] ping 339/500 67.8% 경과 11s 남음 5s
+[progress] ping 349/500 69.8% 경과 11s 남음 5s
+[progress] ping 359/500 71.8% 경과 12s 남음 5s
+[progress] ping 369/500 73.8% 경과 12s 남음 4s
+[progress] ping 379/500 75.8% 경과 12s 남음 4s
+[progress] ping 389/500 77.8% 경과 13s 남음 4s
+[progress] ping 399/500 79.8% 경과 13s 남음 3s
+[progress] ping 409/500 81.8% 경과 13s 남음 3s
+[progress] ping 419/500 83.8% 경과 14s 남음 3s
+[progress] ping 429/500 85.8% 경과 14s 남음 2s
+[progress] ping 439/500 87.8% 경과 14s 남음 2s
+[progress] ping 449/500 89.8% 경과 15s 남음 2s
+[progress] ping 459/500 91.8% 경과 15s 남음 1s
+[progress] ping 469/500 93.8% 경과 15s 남음 1s
+[progress] ping 479/500 95.8% 경과 16s 남음 1s
+[progress] ping 489/500 97.8% 경과 16s 남음 0s
+[progress] ping 499/500 99.8% 경과 16s 남음 0s
+[progress] ping 500/500 100.0% 경과 16s 남음 0s
+[leg 1/5] start=(-11,-139) yaw=16  pings=500
    [수신기 노이즈] power x1.0693 (1.911e-16 -> 2.044e-16)
    [표시] 창 -133.9 ~ -83.9 dB (폭 50.0 dB, 물리 하한 -150.6 dB, 고정 표시폭 50.0 dB)
-   -> waterfall/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg01.png  (100x918px)
+   -> waterfall/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg01.png  (500x918px)
    -> waterfall_variant/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg01.png  (scene clipping 62.7 dB)
       mask/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg01.png  (wreck 0.00%, bbox 0)
-[progress] ping 0/101 0.0% 경과 0s 남음 -
-[progress] ping 1/101 1.0% 경과 0s 남음 3s
-[progress] ping 3/101 3.0% 경과 0s 남음 3s
-[progress] ping 5/101 5.0% 경과 0s 남음 3s
-[progress] ping 7/101 6.9% 경과 0s 남음 3s
-[progress] ping 9/101 8.9% 경과 0s 남음 3s
-[progress] ping 11/101 10.9% 경과 0s 남음 3s
-[progress] ping 13/101 12.9% 경과 0s 남음 3s
-[progress] ping 15/101 14.9% 경과 1s 남음 3s
-[progress] ping 17/101 16.8% 경과 1s 남음 3s
-[progress] ping 19/101 18.8% 경과 1s 남음 3s
-[progress] ping 21/101 20.8% 경과 1s 남음 3s
-[progress] ping 23/101 22.8% 경과 1s 남음 3s
-[progress] ping 25/101 24.8% 경과 1s 남음 3s
-[progress] ping 27/101 26.7% 경과 1s 남음 2s
-[progress] ping 29/101 28.7% 경과 1s 남음 2s
-[progress] ping 31/101 30.7% 경과 1s 남음 2s
-[progress] ping 33/101 32.7% 경과 1s 남음 2s
-[progress] ping 35/101 34.7% 경과 1s 남음 2s
-[progress] ping 37/101 36.6% 경과 1s 남음 2s
-[progress] ping 39/101 38.6% 경과 1s 남음 2s
-[progress] ping 41/101 40.6% 경과 1s 남음 2s
-[progress] ping 43/101 42.6% 경과 1s 남음 2s
-[progress] ping 45/101 44.6% 경과 2s 남음 2s
-[progress] ping 47/101 46.5% 경과 2s 남음 2s
-[progress] ping 49/101 48.5% 경과 2s 남음 2s
-[progress] ping 51/101 50.5% 경과 2s 남음 2s
-[progress] ping 53/101 52.5% 경과 2s 남음 2s
-[progress] ping 55/101 54.5% 경과 2s 남음 2s
-[progress] ping 57/101 56.4% 경과 2s 남음 1s
-[progress] ping 59/101 58.4% 경과 2s 남음 1s
-[progress] ping 61/101 60.4% 경과 2s 남음 1s
-[progress] ping 63/101 62.4% 경과 2s 남음 1s
-[progress] ping 65/101 64.4% 경과 2s 남음 1s
-[progress] ping 67/101 66.3% 경과 2s 남음 1s
-[progress] ping 69/101 68.3% 경과 2s 남음 1s
-[progress] ping 71/101 70.3% 경과 2s 남음 1s
-[progress] ping 73/101 72.3% 경과 3s 남음 1s
-[progress] ping 75/101 74.3% 경과 3s 남음 1s
-[progress] ping 77/101 76.2% 경과 3s 남음 1s
-[progress] ping 79/101 78.2% 경과 3s 남음 1s
-[progress] ping 81/101 80.2% 경과 3s 남음 1s
-[progress] ping 83/101 82.2% 경과 3s 남음 1s
-[progress] ping 85/101 84.2% 경과 3s 남음 1s
-[progress] ping 87/101 86.1% 경과 3s 남음 0s
-[progress] ping 89/101 88.1% 경과 3s 남음 0s
-[progress] ping 91/101 90.1% 경과 3s 남음 0s
-[progress] ping 93/101 92.1% 경과 3s 남음 0s
-[progress] ping 95/101 94.1% 경과 3s 남음 0s
-[progress] ping 97/101 96.0% 경과 3s 남음 0s
-[progress] ping 99/101 98.0% 경과 3s 남음 0s
-[progress] ping 101/101 100.0% 경과 3s 남음 0s
-[leg 2/5] start=(28,-60) yaw=-164  pings=101
+[progress] ping 0/500 0.0% 경과 0s 남음 -
+[progress] ping 9/500 1.8% 경과 0s 남음 16s
+[progress] ping 19/500 3.8% 경과 1s 남음 16s
+[progress] ping 29/500 5.8% 경과 1s 남음 16s
+[progress] ping 39/500 7.8% 경과 1s 남음 15s
+[progress] ping 49/500 9.8% 경과 2s 남음 15s
+[progress] ping 59/500 11.8% 경과 2s 남음 15s
+[progress] ping 69/500 13.8% 경과 2s 남음 14s
+[progress] ping 79/500 15.8% 경과 3s 남음 14s
+[progress] ping 89/500 17.8% 경과 3s 남음 14s
+[progress] ping 99/500 19.8% 경과 3s 남음 13s
+[progress] ping 109/500 21.8% 경과 4s 남음 13s
+[progress] ping 119/500 23.8% 경과 4s 남음 13s
+[progress] ping 129/500 25.8% 경과 4s 남음 12s
+[progress] ping 139/500 27.8% 경과 5s 남음 12s
+[progress] ping 149/500 29.8% 경과 5s 남음 12s
+[progress] ping 159/500 31.8% 경과 5s 남음 11s
+[progress] ping 169/500 33.8% 경과 6s 남음 11s
+[progress] ping 179/500 35.8% 경과 6s 남음 11s
+[progress] ping 189/500 37.8% 경과 6s 남음 10s
+[progress] ping 199/500 39.8% 경과 7s 남음 10s
+[progress] ping 209/500 41.8% 경과 7s 남음 10s
+[progress] ping 219/500 43.8% 경과 7s 남음 9s
+[progress] ping 229/500 45.8% 경과 8s 남음 9s
+[progress] ping 239/500 47.8% 경과 8s 남음 9s
+[progress] ping 249/500 49.8% 경과 8s 남음 8s
+[progress] ping 259/500 51.8% 경과 9s 남음 8s
+[progress] ping 269/500 53.8% 경과 9s 남음 8s
+[progress] ping 279/500 55.8% 경과 9s 남음 7s
+[progress] ping 289/500 57.8% 경과 10s 남음 7s
+[progress] ping 299/500 59.8% 경과 10s 남음 7s
+[progress] ping 309/500 61.8% 경과 10s 남음 6s
+[progress] ping 319/500 63.8% 경과 11s 남음 6s
+[progress] ping 329/500 65.8% 경과 11s 남음 6s
+[progress] ping 339/500 67.8% 경과 11s 남음 5s
+[progress] ping 349/500 69.8% 경과 12s 남음 5s
+[progress] ping 359/500 71.8% 경과 12s 남음 5s
+[progress] ping 369/500 73.8% 경과 12s 남음 4s
+[progress] ping 379/500 75.8% 경과 13s 남음 4s
+[progress] ping 389/500 77.8% 경과 13s 남음 4s
+[progress] ping 399/500 79.8% 경과 13s 남음 3s
+[progress] ping 409/500 81.8% 경과 14s 남음 3s
+[progress] ping 419/500 83.8% 경과 14s 남음 3s
+[progress] ping 429/500 85.8% 경과 14s 남음 2s
+[progress] ping 439/500 87.8% 경과 15s 남음 2s
+[progress] ping 449/500 89.8% 경과 15s 남음 2s
+[progress] ping 459/500 91.8% 경과 15s 남음 1s
+[progress] ping 469/500 93.8% 경과 16s 남음 1s
+[progress] ping 479/500 95.8% 경과 16s 남음 1s
+[progress] ping 489/500 97.8% 경과 16s 남음 0s
+[progress] ping 499/500 99.8% 경과 17s 남음 0s
+[progress] ping 500/500 100.0% 경과 17s 남음 0s
+[leg 2/5] start=(66,-48) yaw=-164  pings=500
    [수신기 노이즈] power x1.0693 (1.911e-16 -> 2.044e-16)
    [표시] 창 -133.9 ~ -83.9 dB (폭 50.0 dB, 물리 하한 -150.6 dB, 고정 표시폭 50.0 dB)
-   -> waterfall/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg02.png  (101x918px)
+   -> waterfall/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg02.png  (500x918px)
    -> waterfall_variant/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg02.png  (scene clipping 62.7 dB)
-      mask/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg02.png  (wreck 2.87%, bbox 2)
-[progress] ping 0/100 0.0% 경과 0s 남음 -
-[progress] ping 1/100 1.0% 경과 0s 남음 3s
-[progress] ping 3/100 3.0% 경과 0s 남음 3s
-[progress] ping 5/100 5.0% 경과 0s 남음 3s
-[progress] ping 7/100 7.0% 경과 0s 남음 3s
-[progress] ping 9/100 9.0% 경과 0s 남음 3s
-[progress] ping 11/100 11.0% 경과 0s 남음 3s
-[progress] ping 13/100 13.0% 경과 0s 남음 3s
-[progress] ping 15/100 15.0% 경과 1s 남음 3s
-[progress] ping 17/100 17.0% 경과 1s 남음 3s
-[progress] ping 19/100 19.0% 경과 1s 남음 3s
-[progress] ping 21/100 21.0% 경과 1s 남음 3s
-[progress] ping 23/100 23.0% 경과 1s 남음 3s
-[progress] ping 25/100 25.0% 경과 1s 남음 3s
-[progress] ping 27/100 27.0% 경과 1s 남음 3s
-[progress] ping 29/100 29.0% 경과 1s 남음 3s
-[progress] ping 31/100 31.0% 경과 1s 남음 2s
-[progress] ping 33/100 33.0% 경과 1s 남음 2s
-[progress] ping 35/100 35.0% 경과 1s 남음 2s
-[progress] ping 37/100 37.0% 경과 1s 남음 2s
-[progress] ping 39/100 39.0% 경과 1s 남음 2s
-[progress] ping 41/100 41.0% 경과 1s 남음 2s
-[progress] ping 43/100 43.0% 경과 1s 남음 2s
-[progress] ping 45/100 45.0% 경과 2s 남음 2s
-[progress] ping 47/100 47.0% 경과 2s 남음 2s
-[progress] ping 49/100 49.0% 경과 2s 남음 2s
-[progress] ping 51/100 51.0% 경과 2s 남음 2s
-[progress] ping 53/100 53.0% 경과 2s 남음 2s
-[progress] ping 55/100 55.0% 경과 2s 남음 2s
-[progress] ping 57/100 57.0% 경과 2s 남음 1s
-[progress] ping 59/100 59.0% 경과 2s 남음 1s
-[progress] ping 61/100 61.0% 경과 2s 남음 1s
-[progress] ping 63/100 63.0% 경과 2s 남음 1s
-[progress] ping 65/100 65.0% 경과 2s 남음 1s
-[progress] ping 67/100 67.0% 경과 2s 남음 1s
-[progress] ping 69/100 69.0% 경과 2s 남음 1s
-[progress] ping 71/100 71.0% 경과 2s 남음 1s
-[progress] ping 73/100 73.0% 경과 2s 남음 1s
-[progress] ping 75/100 75.0% 경과 3s 남음 1s
-[progress] ping 77/100 77.0% 경과 3s 남음 1s
-[progress] ping 79/100 79.0% 경과 3s 남음 1s
-[progress] ping 81/100 81.0% 경과 3s 남음 1s
-[progress] ping 83/100 83.0% 경과 3s 남음 1s
-[progress] ping 85/100 85.0% 경과 3s 남음 1s
-[progress] ping 87/100 87.0% 경과 3s 남음 0s
-[progress] ping 89/100 89.0% 경과 3s 남음 0s
-[progress] ping 91/100 91.0% 경과 3s 남음 0s
-[progress] ping 93/100 93.0% 경과 3s 남음 0s
-[progress] ping 95/100 95.0% 경과 3s 남음 0s
-[progress] ping 97/100 97.0% 경과 3s 남음 0s
-[progress] ping 99/100 99.0% 경과 3s 남음 0s
-[progress] ping 100/100 100.0% 경과 3s 남음 0s
-[leg 3/5] start=(-10,-3) yaw=16  pings=100
+      mask/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg02.png  (wreck 1.55%, bbox 2)
+[progress] ping 0/500 0.0% 경과 0s 남음 -
+[progress] ping 9/500 1.8% 경과 0s 남음 16s
+[progress] ping 19/500 3.8% 경과 1s 남음 16s
+[progress] ping 29/500 5.8% 경과 1s 남음 15s
+[progress] ping 39/500 7.8% 경과 1s 남음 15s
+[progress] ping 49/500 9.8% 경과 2s 남음 15s
+[progress] ping 59/500 11.8% 경과 2s 남음 14s
+[progress] ping 69/500 13.8% 경과 2s 남음 14s
+[progress] ping 79/500 15.8% 경과 3s 남음 14s
+[progress] ping 89/500 17.8% 경과 3s 남음 13s
+[progress] ping 99/500 19.8% 경과 3s 남음 13s
+[progress] ping 109/500 21.8% 경과 4s 남음 13s
+[progress] ping 119/500 23.8% 경과 4s 남음 13s
+[progress] ping 129/500 25.8% 경과 4s 남음 12s
+[progress] ping 139/500 27.8% 경과 5s 남음 12s
+[progress] ping 149/500 29.8% 경과 5s 남음 12s
+[progress] ping 159/500 31.8% 경과 5s 남음 11s
+[progress] ping 169/500 33.8% 경과 6s 남음 11s
+[progress] ping 179/500 35.8% 경과 6s 남음 11s
+[progress] ping 189/500 37.8% 경과 6s 남음 10s
+[progress] ping 199/500 39.8% 경과 7s 남음 10s
+[progress] ping 209/500 41.8% 경과 7s 남음 10s
+[progress] ping 219/500 43.8% 경과 7s 남음 9s
+[progress] ping 229/500 45.8% 경과 8s 남음 9s
+[progress] ping 239/500 47.8% 경과 8s 남음 9s
+[progress] ping 249/500 49.8% 경과 8s 남음 8s
+[progress] ping 259/500 51.8% 경과 9s 남음 8s
+[progress] ping 269/500 53.8% 경과 9s 남음 8s
+[progress] ping 279/500 55.8% 경과 9s 남음 7s
+[progress] ping 289/500 57.8% 경과 10s 남음 7s
+[progress] ping 299/500 59.8% 경과 10s 남음 7s
+[progress] ping 309/500 61.8% 경과 10s 남음 6s
+[progress] ping 319/500 63.8% 경과 11s 남음 6s
+[progress] ping 329/500 65.8% 경과 11s 남음 6s
+[progress] ping 339/500 67.8% 경과 11s 남음 5s
+[progress] ping 349/500 69.8% 경과 12s 남음 5s
+[progress] ping 359/500 71.8% 경과 12s 남음 5s
+[progress] ping 369/500 73.8% 경과 12s 남음 4s
+[progress] ping 379/500 75.8% 경과 13s 남음 4s
+[progress] ping 389/500 77.8% 경과 13s 남음 4s
+[progress] ping 399/500 79.8% 경과 13s 남음 3s
+[progress] ping 409/500 81.8% 경과 14s 남음 3s
+[progress] ping 419/500 83.8% 경과 14s 남음 3s
+[progress] ping 429/500 85.8% 경과 14s 남음 2s
+[progress] ping 439/500 87.8% 경과 15s 남음 2s
+[progress] ping 449/500 89.8% 경과 15s 남음 2s
+[progress] ping 459/500 91.8% 경과 15s 남음 1s
+[progress] ping 469/500 93.8% 경과 15s 남음 1s
+[progress] ping 479/500 95.8% 경과 16s 남음 1s
+[progress] ping 489/500 97.8% 경과 16s 남음 0s
+[progress] ping 499/500 99.8% 경과 16s 남음 0s
+[progress] ping 500/500 100.0% 경과 17s 남음 0s
+[leg 3/5] start=(-48,-14) yaw=16  pings=500
    [수신기 노이즈] power x1.0693 (1.911e-16 -> 2.044e-16)
    [표시] 창 -133.9 ~ -83.9 dB (폭 50.0 dB, 물리 하한 -150.6 dB, 고정 표시폭 50.0 dB)
-   -> waterfall/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg03.png  (100x918px)
+   -> waterfall/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg03.png  (500x918px)
    -> waterfall_variant/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg03.png  (scene clipping 62.7 dB)
-      mask/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg03.png  (wreck 3.38%, bbox 2)
-[progress] ping 0/101 0.0% 경과 0s 남음 -
-[progress] ping 1/101 1.0% 경과 0s 남음 4s
-[progress] ping 3/101 3.0% 경과 0s 남음 3s
-[progress] ping 5/101 5.0% 경과 0s 남음 3s
-[progress] ping 7/101 6.9% 경과 0s 남음 3s
-[progress] ping 9/101 8.9% 경과 0s 남음 3s
-[progress] ping 11/101 10.9% 경과 0s 남음 3s
-[progress] ping 13/101 12.9% 경과 0s 남음 3s
-[progress] ping 15/101 14.9% 경과 1s 남음 3s
-[progress] ping 17/101 16.8% 경과 1s 남음 3s
-[progress] ping 19/101 18.8% 경과 1s 남음 3s
-[progress] ping 21/101 20.8% 경과 1s 남음 3s
-[progress] ping 23/101 22.8% 경과 1s 남음 3s
-[progress] ping 25/101 24.8% 경과 1s 남음 3s
-[progress] ping 27/101 26.7% 경과 1s 남음 3s
-[progress] ping 29/101 28.7% 경과 1s 남음 3s
-[progress] ping 31/101 30.7% 경과 1s 남음 2s
-[progress] ping 33/101 32.7% 경과 1s 남음 2s
-[progress] ping 35/101 34.7% 경과 1s 남음 2s
-[progress] ping 37/101 36.6% 경과 1s 남음 2s
-[progress] ping 39/101 38.6% 경과 1s 남음 2s
-[progress] ping 41/101 40.6% 경과 1s 남음 2s
-[progress] ping 43/101 42.6% 경과 1s 남음 2s
-[progress] ping 45/101 44.6% 경과 2s 남음 2s
-[progress] ping 47/101 46.5% 경과 2s 남음 2s
-[progress] ping 49/101 48.5% 경과 2s 남음 2s
-[progress] ping 51/101 50.5% 경과 2s 남음 2s
-[progress] ping 53/101 52.5% 경과 2s 남음 2s
-[progress] ping 55/101 54.5% 경과 2s 남음 2s
-[progress] ping 57/101 56.4% 경과 2s 남음 2s
-[progress] ping 59/101 58.4% 경과 2s 남음 1s
-[progress] ping 61/101 60.4% 경과 2s 남음 1s
-[progress] ping 63/101 62.4% 경과 2s 남음 1s
-[progress] ping 65/101 64.4% 경과 2s 남음 1s
-[progress] ping 67/101 66.3% 경과 2s 남음 1s
-[progress] ping 69/101 68.3% 경과 2s 남음 1s
-[progress] ping 71/101 70.3% 경과 2s 남음 1s
-[progress] ping 73/101 72.3% 경과 2s 남음 1s
-[progress] ping 75/101 74.3% 경과 3s 남음 1s
-[progress] ping 77/101 76.2% 경과 3s 남음 1s
-[progress] ping 79/101 78.2% 경과 3s 남음 1s
-[progress] ping 81/101 80.2% 경과 3s 남음 1s
-[progress] ping 83/101 82.2% 경과 3s 남음 1s
-[progress] ping 85/101 84.2% 경과 3s 남음 1s
-[progress] ping 87/101 86.1% 경과 3s 남음 0s
-[progress] ping 89/101 88.1% 경과 3s 남음 0s
-[progress] ping 91/101 90.1% 경과 3s 남음 0s
-[progress] ping 93/101 92.1% 경과 3s 남음 0s
-[progress] ping 95/101 94.1% 경과 3s 남음 0s
-[progress] ping 97/101 96.0% 경과 3s 남음 0s
-[progress] ping 99/101 98.0% 경과 3s 남음 0s
-[progress] ping 101/101 100.0% 경과 3s 남음 0s
-[leg 4/5] start=(-9,65) yaw=-164  pings=101
+      mask/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg03.png  (wreck 3.02%, bbox 3)
+[progress] ping 0/500 0.0% 경과 0s 남음 -
+[progress] ping 9/500 1.8% 경과 0s 남음 16s
+[progress] ping 19/500 3.8% 경과 1s 남음 16s
+[progress] ping 29/500 5.8% 경과 1s 남음 15s
+[progress] ping 39/500 7.8% 경과 1s 남음 15s
+[progress] ping 49/500 9.8% 경과 2s 남음 15s
+[progress] ping 59/500 11.8% 경과 2s 남음 14s
+[progress] ping 69/500 13.8% 경과 2s 남음 14s
+[progress] ping 79/500 15.8% 경과 3s 남음 14s
+[progress] ping 89/500 17.8% 경과 3s 남음 13s
+[progress] ping 99/500 19.8% 경과 3s 남음 13s
+[progress] ping 109/500 21.8% 경과 4s 남음 13s
+[progress] ping 119/500 23.8% 경과 4s 남음 12s
+[progress] ping 129/500 25.8% 경과 4s 남음 12s
+[progress] ping 139/500 27.8% 경과 5s 남음 12s
+[progress] ping 149/500 29.8% 경과 5s 남음 12s
+[progress] ping 159/500 31.8% 경과 5s 남음 11s
+[progress] ping 169/500 33.8% 경과 6s 남음 11s
+[progress] ping 179/500 35.8% 경과 6s 남음 11s
+[progress] ping 189/500 37.8% 경과 6s 남음 10s
+[progress] ping 199/500 39.8% 경과 7s 남음 10s
+[progress] ping 209/500 41.8% 경과 7s 남음 10s
+[progress] ping 219/500 43.8% 경과 7s 남음 9s
+[progress] ping 229/500 45.8% 경과 8s 남음 9s
+[progress] ping 239/500 47.8% 경과 8s 남음 9s
+[progress] ping 249/500 49.8% 경과 8s 남음 8s
+[progress] ping 259/500 51.8% 경과 9s 남음 8s
+[progress] ping 269/500 53.8% 경과 9s 남음 8s
+[progress] ping 279/500 55.8% 경과 9s 남음 7s
+[progress] ping 289/500 57.8% 경과 10s 남음 7s
+[progress] ping 299/500 59.8% 경과 10s 남음 7s
+[progress] ping 309/500 61.8% 경과 10s 남음 6s
+[progress] ping 319/500 63.8% 경과 11s 남음 6s
+[progress] ping 329/500 65.8% 경과 11s 남음 6s
+[progress] ping 339/500 67.8% 경과 11s 남음 5s
+[progress] ping 349/500 69.8% 경과 12s 남음 5s
+[progress] ping 359/500 71.8% 경과 12s 남음 5s
+[progress] ping 369/500 73.8% 경과 12s 남음 4s
+[progress] ping 379/500 75.8% 경과 13s 남음 4s
+[progress] ping 389/500 77.8% 경과 13s 남음 4s
+[progress] ping 399/500 79.8% 경과 13s 남음 3s
+[progress] ping 409/500 81.8% 경과 14s 남음 3s
+[progress] ping 419/500 83.8% 경과 14s 남음 3s
+[progress] ping 429/500 85.8% 경과 14s 남음 2s
+[progress] ping 439/500 87.8% 경과 14s 남음 2s
+[progress] ping 449/500 89.8% 경과 15s 남음 2s
+[progress] ping 459/500 91.8% 경과 15s 남음 1s
+[progress] ping 469/500 93.8% 경과 15s 남음 1s
+[progress] ping 479/500 95.8% 경과 16s 남음 1s
+[progress] ping 489/500 97.8% 경과 16s 남음 0s
+[progress] ping 499/500 99.8% 경과 16s 남음 0s
+[progress] ping 500/500 100.0% 경과 16s 남음 0s
+[leg 4/5] start=(30,77) yaw=-164  pings=500
    [수신기 노이즈] power x1.0693 (1.911e-16 -> 2.044e-16)
    [표시] 창 -133.9 ~ -83.9 dB (폭 50.0 dB, 물리 하한 -150.6 dB, 고정 표시폭 50.0 dB)
-   -> waterfall/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg04.png  (101x918px)
+   -> waterfall/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg04.png  (500x918px)
    -> waterfall_variant/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg04.png  (scene clipping 62.7 dB)
-      mask/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg04.png  (wreck 3.79%, bbox 3)
-[progress] ping 0/100 0.0% 경과 0s 남음 -
-[progress] ping 1/100 1.0% 경과 0s 남음 3s
-[progress] ping 3/100 3.0% 경과 0s 남음 3s
-[progress] ping 5/100 5.0% 경과 0s 남음 3s
-[progress] ping 7/100 7.0% 경과 0s 남음 3s
-[progress] ping 9/100 9.0% 경과 0s 남음 3s
-[progress] ping 11/100 11.0% 경과 0s 남음 3s
-[progress] ping 13/100 13.0% 경과 0s 남음 3s
-[progress] ping 15/100 15.0% 경과 0s 남음 3s
-[progress] ping 17/100 17.0% 경과 1s 남음 3s
-[progress] ping 19/100 19.0% 경과 1s 남음 3s
-[progress] ping 21/100 21.0% 경과 1s 남음 3s
-[progress] ping 23/100 23.0% 경과 1s 남음 3s
-[progress] ping 25/100 25.0% 경과 1s 남음 2s
-[progress] ping 27/100 27.0% 경과 1s 남음 2s
-[progress] ping 29/100 29.0% 경과 1s 남음 2s
-[progress] ping 31/100 31.0% 경과 1s 남음 2s
-[progress] ping 33/100 33.0% 경과 1s 남음 2s
-[progress] ping 35/100 35.0% 경과 1s 남음 2s
-[progress] ping 37/100 37.0% 경과 1s 남음 2s
-[progress] ping 39/100 39.0% 경과 1s 남음 2s
-[progress] ping 41/100 41.0% 경과 1s 남음 2s
-[progress] ping 43/100 43.0% 경과 1s 남음 2s
-[progress] ping 45/100 45.0% 경과 2s 남음 2s
-[progress] ping 47/100 47.0% 경과 2s 남음 2s
-[progress] ping 49/100 49.0% 경과 2s 남음 2s
-[progress] ping 51/100 51.0% 경과 2s 남음 2s
-[progress] ping 53/100 53.0% 경과 2s 남음 2s
-[progress] ping 55/100 55.0% 경과 2s 남음 1s
-[progress] ping 57/100 57.0% 경과 2s 남음 1s
-[progress] ping 59/100 59.0% 경과 2s 남음 1s
-[progress] ping 61/100 61.0% 경과 2s 남음 1s
-[progress] ping 63/100 63.0% 경과 2s 남음 1s
-[progress] ping 65/100 65.0% 경과 2s 남음 1s
-[progress] ping 67/100 67.0% 경과 2s 남음 1s
-[progress] ping 69/100 69.0% 경과 2s 남음 1s
-[progress] ping 71/100 71.0% 경과 2s 남음 1s
-[progress] ping 73/100 73.0% 경과 2s 남음 1s
-[progress] ping 75/100 75.0% 경과 2s 남음 1s
-[progress] ping 77/100 77.0% 경과 3s 남음 1s
-[progress] ping 79/100 79.0% 경과 3s 남음 1s
-[progress] ping 81/100 81.0% 경과 3s 남음 1s
-[progress] ping 83/100 83.0% 경과 3s 남음 1s
-[progress] ping 85/100 85.0% 경과 3s 남음 0s
-[progress] ping 87/100 87.0% 경과 3s 남음 0s
-[progress] ping 89/100 89.0% 경과 3s 남음 0s
-[progress] ping 91/100 91.0% 경과 3s 남음 0s
-[progress] ping 93/100 93.0% 경과 3s 남음 0s
-[progress] ping 95/100 95.0% 경과 3s 남음 0s
-[progress] ping 97/100 97.0% 경과 3s 남음 0s
-[progress] ping 99/100 99.0% 경과 3s 남음 0s
-[progress] ping 100/100 100.0% 경과 3s 남음 0s
-[leg 5/5] start=(-46,122) yaw=16  pings=100
+      mask/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg04.png  (wreck 2.30%, bbox 2)
+[progress] ping 0/500 0.0% 경과 0s 남음 -
+[progress] ping 9/500 1.8% 경과 0s 남음 16s
+[progress] ping 19/500 3.8% 경과 1s 남음 15s
+[progress] ping 29/500 5.8% 경과 1s 남음 15s
+[progress] ping 39/500 7.8% 경과 1s 남음 15s
+[progress] ping 49/500 9.8% 경과 2s 남음 14s
+[progress] ping 59/500 11.8% 경과 2s 남음 14s
+[progress] ping 69/500 13.8% 경과 2s 남음 14s
+[progress] ping 79/500 15.8% 경과 3s 남음 13s
+[progress] ping 89/500 17.8% 경과 3s 남음 13s
+[progress] ping 99/500 19.8% 경과 3s 남음 13s
+[progress] ping 109/500 21.8% 경과 3s 남음 13s
+[progress] ping 119/500 23.8% 경과 4s 남음 12s
+[progress] ping 129/500 25.8% 경과 4s 남음 12s
+[progress] ping 139/500 27.8% 경과 4s 남음 12s
+[progress] ping 149/500 29.8% 경과 5s 남음 11s
+[progress] ping 159/500 31.8% 경과 5s 남음 11s
+[progress] ping 169/500 33.8% 경과 5s 남음 11s
+[progress] ping 179/500 35.8% 경과 6s 남음 10s
+[progress] ping 189/500 37.8% 경과 6s 남음 10s
+[progress] ping 199/500 39.8% 경과 6s 남음 10s
+[progress] ping 209/500 41.8% 경과 7s 남음 9s
+[progress] ping 219/500 43.8% 경과 7s 남음 9s
+[progress] ping 229/500 45.8% 경과 7s 남음 9s
+[progress] ping 239/500 47.8% 경과 8s 남음 8s
+[progress] ping 249/500 49.8% 경과 8s 남음 8s
+[progress] ping 259/500 51.8% 경과 8s 남음 8s
+[progress] ping 269/500 53.8% 경과 9s 남음 7s
+[progress] ping 279/500 55.8% 경과 9s 남음 7s
+[progress] ping 289/500 57.8% 경과 9s 남음 7s
+[progress] ping 299/500 59.8% 경과 10s 남음 6s
+[progress] ping 309/500 61.8% 경과 10s 남음 6s
+[progress] ping 319/500 63.8% 경과 10s 남음 6s
+[progress] ping 329/500 65.8% 경과 11s 남음 5s
+[progress] ping 339/500 67.8% 경과 11s 남음 5s
+[progress] ping 349/500 69.8% 경과 11s 남음 5s
+[progress] ping 359/500 71.8% 경과 12s 남음 5s
+[progress] ping 369/500 73.8% 경과 12s 남음 4s
+[progress] ping 379/500 75.8% 경과 12s 남음 4s
+[progress] ping 389/500 77.8% 경과 12s 남음 4s
+[progress] ping 399/500 79.8% 경과 13s 남음 3s
+[progress] ping 409/500 81.8% 경과 13s 남음 3s
+[progress] ping 419/500 83.8% 경과 13s 남음 3s
+[progress] ping 429/500 85.8% 경과 14s 남음 2s
+[progress] ping 439/500 87.8% 경과 14s 남음 2s
+[progress] ping 449/500 89.8% 경과 14s 남음 2s
+[progress] ping 459/500 91.8% 경과 15s 남음 1s
+[progress] ping 469/500 93.8% 경과 15s 남음 1s
+[progress] ping 479/500 95.8% 경과 15s 남음 1s
+[progress] ping 489/500 97.8% 경과 16s 남음 0s
+[progress] ping 499/500 99.8% 경과 16s 남음 0s
+[progress] ping 500/500 100.0% 경과 16s 남음 0s
+[leg 5/5] start=(-85,111) yaw=16  pings=500
    [수신기 노이즈] power x1.0693 (1.911e-16 -> 2.044e-16)
    [표시] 창 -133.9 ~ -83.9 dB (폭 50.0 dB, 물리 하한 -150.6 dB, 고정 표시폭 50.0 dB)
-   -> waterfall/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg05.png  (100x918px)
+   -> waterfall/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg05.png  (500x918px)
    -> waterfall_variant/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg05.png  (scene clipping 62.7 dB)
-      mask/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg05.png  (wreck 1.64%, bbox 1)
-[sss ideal] 완료: 5 워터폴 저장 -> ./examples/sample_dataset/samples/scene_000000
+      mask/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg05.png  (wreck 0.34%, bbox 1)
+[sss ideal] 완료: 5 워터폴 저장 -> /home/artemis-1/holoocean_ws/examples/sample_dataset_long2/samples/scene_000000

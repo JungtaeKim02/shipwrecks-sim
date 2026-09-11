@@ -3,8 +3,9 @@
   "n": 1,
   "seed": 20260911,
   "platform": "ideal",
+  "track_full_length_m": 100,
   "track_length_fractions": [
-    0.25
+    1.0
   ],
   "floor_clutter_pct": 0,
   "wreck_pct": 25,

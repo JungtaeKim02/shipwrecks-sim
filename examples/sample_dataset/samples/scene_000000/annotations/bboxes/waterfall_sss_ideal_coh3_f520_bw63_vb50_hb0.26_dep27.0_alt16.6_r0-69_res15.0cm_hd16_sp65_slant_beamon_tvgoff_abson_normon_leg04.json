@@ -1,31 +1,25 @@
 {
   "image": "waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg04.png",
   "image_width": 918,
-  "image_height": 101,
+  "image_height": 500,
   "mask_source": "mask",
   "class_id": 0,
   "class_name": "wreck",
   "boxes": [
     {
       "x1": 593,
-      "y1": 52,
+      "y1": 251,
       "x2": 675,
-      "y2": 101,
-      "area_px": 1869
+      "y2": 305,
+      "area_px": 1884
     },
     {
-      "x1": 156,
-      "y1": 75,
-      "x2": 284,
-      "y2": 101,
-      "area_px": 1614
-    },
-    {
-      "x1": 128,
-      "y1": 84,
-      "x2": 135,
-      "y2": 101,
-      "area_px": 32
+      "x1": 107,
+      "y1": 274,
+      "x2": 287,
+      "y2": 371,
+      "area_px": 8677,
+      "components": 8
     }
   ],
   "box_grouping": {

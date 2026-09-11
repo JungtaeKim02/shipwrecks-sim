@@ -1,7 +1,7 @@
 {
   "format": "sss-dataset-v2",
   "status": "complete",
-  "root": "./examples/sample_dataset",
+  "root": "/home/artemis-1/holoocean_ws/examples/sample_dataset_long2",
   "n": 1,
   "completed": 1,
   "failed": 0,
@@ -23,8 +23,8 @@
       "scene_id": "scene_20260911",
       "scene_seed": 20260911,
       "terrain": "presentation_flat_alongtrack_facies_v4",
-      "track_length_fraction": 0.25,
-      "track_length_m": 20.0,
+      "track_length_fraction": 1.0,
+      "track_length_m": 100.0,
       "heading_deg": 16.4,
       "n_legs": 5,
       "leg_spacing_m": 65.1,
@@ -46,7 +46,7 @@
       "track_dx_m": 0.2,
       "display_variant_dynamic_range_db": 62.66,
       "range_envelope_source": "sampled_survey_footprint",
-      "range_footprint_samples": 2766,
+      "range_footprint_samples": 11616,
       "objects": 1761,
       "clusters": 29,
       "elev_rays_required": 1638,
@@ -54,8 +54,8 @@
       "speckle_seed": 1115906387,
       "noise_seed": 1115906388,
       "azimuth_rays_required": 8,
-      "estimated_pings": 500,
-      "estimated_seconds": 26.7,
+      "estimated_pings": 2500,
+      "estimated_seconds": 93.7,
       "ok": true,
       "rc": 0,
       "session": "scene_000000",
@@ -73,7 +73,7 @@
         "bbox_overlay": 5,
         "scene_preview": 1
       },
-      "elapsed_s": 27.2,
+      "elapsed_s": 92.0,
       "log": "samples/scene_000000/run.log",
       "interrupted": false
     }
