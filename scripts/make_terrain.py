@@ -1,23 +1,3 @@
-"""커스텀 해저 지형 생성 — 파라미터로 만들고, 설치하고, 바로 쓸 수 있게 등록한다.
-
-기존 `make_test_terrain.py` 는 프로파일 2개가 하드코딩돼 있고, 소스 트리에만 파일을
-쓰고, `scene_config.json` 등록은 사람이 손으로 복사해야 했다. 그래서 "지형을 하나
-새로 만든다"가 여러 수동 단계로 흩어져 있었다. 이 모듈이 그 전부를 담당한다.
-
-핵심: 엔진은 **실행 시점에** 패키지의 `Content/Config/` 에서 씬 JSON 과 지형 CSV 를
-읽고(MadoSceneConfig.cpp: ResolveConfigPath / ResolveTerrainCsvPath), 씬 이름을
-하드코딩으로 검사하지 않는다. 따라서 그 폴더에 파일만 떨어뜨리면
-**C++ 재빌드도, 재패킹도 필요 없다.**
-
-CSV 형식: ix,iy,x_m,y_m,depth_m   (depth_m 양수 = 수심, 해저면 z = -depth_m)
-  ix 가 안쪽 루프, iy 가 바깥 루프. x_m 은 ix 증가에 따라, y_m 은 iy 증가에 따라 오름차순.
-  ※ 이 정렬이 깨지면 삼각형 winding 이 뒤집혀 지형이 위에서 안 보인다
-    (실제로 겪은 사고 — docs/FIELD_IMPLEMENTATION_GUIDE.md §6).
-
-사용:
-    python3 scripts/make_terrain.py --name my_field_v1 --preset sand_waves
-    python3 scripts/make_terrain.py --name flat_ish --slope-deg 0.3 --roughness-amp 0.2
-"""
 import argparse
 import json
 import math
@@ -32,16 +12,16 @@ SRC_TERRAIN = pp.source_config_root() / "mado_terrain"
 SRC_SCENES = pp.source_config_root() / "mado_scenes"
 SCENE_CONFIG = ROOT / "scripts/scene_config.json"
 
-# 패키지된 시뮬레이터가 실행 중에 읽는 위치. 여기에 없으면 지형이 안 뜬다.
+
 RUNTIME_ROOTS = [
     pp.runtime_config_root(),
 ]
 
-# ---------------------------------------------------------------------------
-# 퇴적물 재질. 값은 이미 씬 파일에 들어 있는 것들만 쓴다(APL-UW TR9407 Ch.IV Table 2
-# 계열). 새 숫자를 지어내지 않는다 — 임의 값은 소나 밝기를 근거 없이 바꾼다.
-# R^2 은 해수(1024x1500) 대비 강도 반사계수.
-# ---------------------------------------------------------------------------
+
+
+
+
+
 MATERIALS = [
     {"id": "very_fine_silt",  "name": "Very Fine Silt (연니)",   "rho": 1175.0, "c": 1456.0},
     {"id": "soft_mud",        "name": "Soft Mud (연니, 어두움)", "rho": 1146.0, "c": 1459.0},
@@ -72,21 +52,10 @@ def _mat(mid):
     return m
 
 
-# ---------------------------------------------------------------------------
-# 지형 합성 — 층을 더한다. 각 층은 실제 해저에 존재하는 지형 요소에 대응한다.
-# ---------------------------------------------------------------------------
+
+
+
 def _gradient_noise(X, Y, cell, seed, octaves=4, gain=0.5, lacunarity=2.0):
-    """그래디언트(Perlin) 잡음 + 옥타브 합. 미세 기복(퇴적물 표면 거칠기)용.
-
-    값잡음(value noise)에서 바꿨다(2026-08-04). 값잡음은 격자점에 **스칼라**를 두고
-    보간해서, 격자점마다 기울기가 0 이 된다. 그 결과 셀 경계가 평평한 이음매로 남고
-    셀 안쪽만 부풀어 **축 정렬 네모 무늬**가 보인다(실측: 셀 경계 기울기가 셀 중앙의
-    0.17 배). 취득 이미지에서 배경이 "옛날 게임 텍스처처럼 네모네모"하게 보인 원인이다.
-
-    그래디언트 잡음은 격자점에 **임의 방향 단위벡터**를 두고 오프셋과 내적하므로
-    격자점에서 기울기가 0 이 아니고, 특징이 등방적이다. 보간은 quintic fade
-    (6t^5-15t^4+10t^3) 로 2차 도함수까지 연속이라 이음매가 남지 않는다.
-    """
     rng = np.random.default_rng(seed)
     out = np.zeros_like(X)
     amp, cs, tot = 1.0, float(cell), 0.0
@@ -96,12 +65,11 @@ def _gradient_noise(X, Y, cell, seed, octaves=4, gain=0.5, lacunarity=2.0):
         gy = np.floor(Y / cs).astype(np.int64)
         fx = X / cs - gx
         fy = Y / cs - gy
-        # quintic fade
+
         u = fx * fx * fx * (fx * (fx * 6 - 15) + 10)
         v = fy * fy * fy * (fy * (fy * 6 - 15) + 10)
 
         def grad_dot(ix, iy, dx, dy):
-            """격자점 (ix,iy) 의 임의 방향 단위벡터와 (dx,dy) 의 내적."""
             k = (ix * 374761393 + iy * 668265263 + s_oct) & 0x7FFFFFFF
             k = (k ^ (k >> 13)) * 1274126177 & 0x7FFFFFFF
             k = k ^ (k >> 16)
@@ -118,47 +86,36 @@ def _gradient_noise(X, Y, cell, seed, octaves=4, gain=0.5, lacunarity=2.0):
         tot += amp
         amp *= gain
         cs /= lacunarity
-    # Perlin 2D 의 이론 최대는 sqrt(2)/2. 옥타브 합을 [-1,1] 로 정규화한다.
+
     return np.clip(out / (tot * 0.7071), -1.0, 1.0)
 
 
 def synthesize(p, X, Y):
-    """파라미터 dict -> 수심 배열 [m] (양수, 클수록 깊음).
-
-    층 구성 (전부 선택적, 진폭 0 이면 꺼짐):
-      slope      광역 경사. 대륙붕은 보통 0.02~1° 라 기본값을 그 범위에 둔다.
-      sand_wave  사구/모래파. 실제 대륙붕에 흔한 규칙적 기복(파장 10~500 m,
-                 파고 0.5~10 m — Ashley 1990 의 dune 분류 범위).
-      ridge      능선/골 2D 사인. 방향성이 뚜렷해 파이프라인 확인이 쉽다.
-      bowl       분지(양수) 또는 둔덕(음수). 등심선이 동심원.
-      channel    수로/골. 한 방향으로 뻗은 가우시안 트로프.
-      roughness  프랙탈 미세기복. 소나 입사각을 국소적으로 흔든다.
-    """
     d = np.full(X.shape, float(p.get("base_depth_m", 18.0)))
 
-    # 광역 경사
+
     sd = math.radians(float(p.get("slope_deg", 0.0)))
     sa = math.radians(float(p.get("slope_dir_deg", 0.0)))
     d += math.tan(sd) * (X * math.cos(sa) + Y * math.sin(sa))
 
-    # 사구/모래파
+
     a = float(p.get("sand_wave_amp_m", 0.0))
     if a:
         lam = max(float(p.get("sand_wave_len_m", 60.0)), 1e-6)
         th = math.radians(float(p.get("sand_wave_dir_deg", 0.0)))
         u = X * math.cos(th) + Y * math.sin(th)
-        # 비대칭(가파른 하류면)은 실제 사구의 특징이라 살짝 넣는다.
+
         ph = 2 * math.pi * u / lam
         d -= a * (np.sin(ph) + 0.25 * np.sin(2 * ph))
 
-    # 능선/골
+
     a = float(p.get("ridge_amp_m", 0.0))
     if a:
         lx = max(float(p.get("ridge_len_x_m", 280.0)), 1e-6)
         ly = max(float(p.get("ridge_len_y_m", 380.0)), 1e-6)
         d -= a * np.sin(2 * math.pi * X / lx) * np.cos(2 * math.pi * Y / ly)
 
-    # 분지 / 둔덕
+
     a = float(p.get("bowl_amp_m", 0.0))
     if a:
         r = max(float(p.get("bowl_radius_m", 90.0)), 1e-6)
@@ -166,7 +123,7 @@ def synthesize(p, X, Y):
         q = ((X - cx) ** 2 + (Y - cy) ** 2) / (r * r)
         d += a * (1.0 - np.exp(-q))
 
-    # 수로
+
     a = float(p.get("channel_depth_m", 0.0))
     if a:
         w = max(float(p.get("channel_width_m", 30.0)), 1e-6)
@@ -175,14 +132,14 @@ def synthesize(p, X, Y):
         perp = -X * math.sin(th) + Y * math.cos(th) - cx
         d += a * np.exp(-(perp / (w * 0.5)) ** 2)
 
-    # 미세 기복
+
     a = float(p.get("roughness_amp_m", 0.0))
     if a:
         d += a * _gradient_noise(X, Y, float(p.get("roughness_cell_m", 8.0)),
                               int(p.get("seed", 0)),
                               int(p.get("roughness_octaves", 4)))
 
-    # 수면 위로 솟지 않게. 0.5 m 는 make_test_terrain 과 같은 하한.
+
     return np.maximum(d, 0.5)
 
 
@@ -194,19 +151,18 @@ def grid(p):
     ny = max(int(round((y1 - y0) / step)) + 1, 2)
     xs = np.linspace(x0, x1, nx)
     ys = np.linspace(y0, y1, ny)
-    X, Y = np.meshgrid(xs, ys)            # X[iy, ix]
+    X, Y = np.meshgrid(xs, ys)
     return xs, ys, X, Y
 
 
 def build(p):
-    """파라미터 -> (xs, ys, depth[ny,nx]). 미리보기와 실제 생성이 같은 경로를 쓴다."""
     xs, ys, X, Y = grid(p)
     return xs, ys, synthesize(p, X, Y)
 
 
-# ---------------------------------------------------------------------------
-# 씬 JSON
-# ---------------------------------------------------------------------------
+
+
+
 def scene_json(name, p, note=None):
     base = _mat(p.get("baseline_material", "coarse_silt"))
     soft = _mat(p.get("soft_material", "very_fine_silt"))
@@ -226,7 +182,7 @@ def scene_json(name, p, note=None):
         "scene_name": name,
         "_comment": note or ("scripts/make_terrain.py 로 생성한 합성 지형. 실측이 아니므로 "
                              "학습 데이터에 쓸 때는 합성임을 기록할 것."),
-        "_generator_params": p,          # 재현용. 어떤 값으로 만들었는지 남긴다.
+        "_generator_params": p,
         "terrain_data_source": f"{name}_terrain.csv",
         "baseline_material": {"comment": base["name"],
                               "density_kgm3": base["rho"], "sound_speed_mps": base["c"]},
@@ -247,17 +203,17 @@ def scene_json(name, p, note=None):
         "domain_warp_cell_size_m": 7.0,
         "domain_warp_fraction_of_radius": 0.22,
         "facies_zones": zones,
-        # 오브젝트는 우리 매니페스트(scene_manifest/scene_runtime)로 스폰한다.
+
         "anchor_stones": [], "reef_edge_cues": [], "wreck_spawns": [],
     }
 
 
-# ---------------------------------------------------------------------------
-# 설치 + 등록
-# ---------------------------------------------------------------------------
+
+
+
 def write_csv(path, xs, ys, depth):
     ny, nx = depth.shape
-    # ix 안쪽 / iy 바깥 순서를 반드시 지킨다(엔진의 격자 폭 자동검출 전제).
+
     IX, IY = np.meshgrid(np.arange(nx), np.arange(ny))
     X, Y = np.meshgrid(xs, ys)
     cols = np.stack([IX.ravel(), IY.ravel(), X.ravel(), Y.ravel(), depth.ravel()], 1)
@@ -268,7 +224,6 @@ def write_csv(path, xs, ys, depth):
 
 
 def register(name, p, dmin, dmax):
-    """scene_config.json 의 terrains 에 넣거나 갱신한다."""
     import collections
     cfg = json.loads(SCENE_CONFIG.read_text(),
                      object_pairs_hook=collections.OrderedDict)
@@ -297,7 +252,6 @@ def register(name, p, dmin, dmax):
 
 
 def install(name, p, note=None, quiet=False):
-    """CSV + 씬 JSON 을 소스와 **런타임 패키지 양쪽**에 쓰고 scene_config 에 등록."""
     xs, ys, depth = build(p)
     dmin, dmax = float(depth.min()), float(depth.max())
     sj = scene_json(name, p, note)
@@ -340,7 +294,7 @@ def install(name, p, note=None, quiet=False):
     return info
 
 
-# ---------------------------------------------------------------------------
+
 PRESETS = {
     "ridge_valley": dict(base_depth_m=18.0, ridge_amp_m=6.0, ridge_len_x_m=283.0,
                          ridge_len_y_m=377.0, roughness_amp_m=0.35, slope_deg=0.25),

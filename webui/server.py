@@ -1,18 +1,3 @@
-"""SSS 데이터 취득 웹 UI 서버 — 표준 라이브러리만 사용(외부 의존성 없음).
-
-실행:
-    python3 webui/server.py            # http://127.0.0.1:8765
-    python3 webui/server.py --port 9000 --host 0.0.0.0
-
-설계 메모
----------
-* Flask/FastAPI 를 쓰지 않는다. 이 PC 에 설치돼 있지 않고, 취득 파이프라인에 런타임
-  의존성을 늘리고 싶지 않다. http.server 로 충분하다(단일 사용자, 로컬).
-* 설정 저장은 **머지**한다. sss_config.json / scene_config.json 에는 파라미터마다
-  근거를 적어둔 `_*_note` 키가 있는데, UI 가 통째로 덮어쓰면 그 근거가 날아간다.
-* 취득은 subprocess 로 `scripts/acquire_sss.py` 를 그대로 돌린다. UI 전용 취득 경로를
-  따로 만들면 CLI 와 결과가 갈라진다.
-"""
 import argparse
 import json
 import mimetypes
@@ -40,20 +25,19 @@ RUN_DIR = DATA / "webui_runs"
 RUN_DIR.mkdir(parents=True, exist_ok=True)
 ACTIVE_JOB_FILE = RUN_DIR / "active_job.json"
 
-import numpy as np                                  
-import sss_common as sc                             
-import acquire_sss as A                             
+import numpy as np
+import sss_common as sc
+import acquire_sss as A
 
 
-                                                                            
-          
-                                                                            
+
+
+
 def load_json(p):
     return json.loads(pathlib.Path(p).read_text())
 
 
 def merge_save(path, updates):
-    """기존 파일에 updates 만 덮어써 저장. `_note` 등 나머지 키는 보존한다."""
     cur = load_json(path)
     _deep_update(cur, updates)
     pathlib.Path(path).write_text(json.dumps(cur, ensure_ascii=False, indent=2))
@@ -68,10 +52,10 @@ def _deep_update(dst, src):
             dst[k] = v
 
 
-                                                                            
-                                  
-                                     
-                                                                            
+
+
+
+
 def derive(sensor):
     cfg = dict(load_json(SENSOR_CFG))
     cfg.update(sensor)
@@ -88,7 +72,7 @@ def derive(sensor):
     alt = A.base_altitude(cfg)
     alpha = sc.francois_garrison_alpha(f_khz) if cfg.get("absorption", True) else 0.0
 
-                                                    
+
     import io
     import contextlib
     buf = io.StringIO()
@@ -99,40 +83,40 @@ def derive(sensor):
 
     reach = sc.beam_reach_m(alt, dep, vb)
 
-                                                                   
-                                                
-                                                        
-                                                
-                                                 
-                                       
-     
-                                                 
-                                                                 
-                                               
+
+
+
+
+
+
+
+
+
+
     lo, hi = dep - vb / 2.0, dep + vb / 2.0
     hi_eff = min(max(hi, 0.05), 90.0)
     slant_near = alt / np.sin(np.radians(hi_eff))
     slant_near = float(min(max(slant_near, rmin), rmax))
     slant_far = (alt / np.sin(np.radians(lo)) if lo > 0.05 else np.inf)
     slant_far = float(min(slant_far, rmax))
-    if slant_far < slant_near:                                              
+    if slant_far < slant_near:
         slant_far = slant_near
     ground_near = float(np.sqrt(max(slant_near ** 2 - alt ** 2, 0.0)))
     ground_far = float(np.sqrt(max(slant_far ** 2 - alt ** 2, 0.0)))
-                                                          
+
     blank_frac = float(min(max((slant_near - rmin) / max(rmax - rmin, 1e-9), 0.0), 1.0))
     vmin_db, vmax_db = sc.display_window_db(rmin, rmax, alpha)
     ref_bs = sc.reference_backscatter()
     ref_db = 10 * np.log10(ref_bs)
     nf = sc.noise_floor_from_rated_range(rmin, alpha)
 
-                                           
+
     rr = np.linspace(max(rmin, 0.5), rmax, 80)
     TL = 20 * np.log10(rr / rmin) + alpha * rr
     noise_db = 10 * np.log10(nf) + 2 * TL
     snr = ref_db - noise_db
 
-                                                    
+
     fan = []
     for th in np.linspace(max(lo, 0.05), min(hi, 89.9), 40):
         R = alt / np.sin(np.radians(th))
@@ -140,7 +124,7 @@ def derive(sensor):
                     "ground": float(min(R, rmax * 3) * np.cos(np.radians(th))),
                     "inside": bool(R <= rmax)})
 
-                                                     
+
     try:
         legs = [{"p0": [float(p0[0]), float(p0[1])],
                  "p1": [float(p1[0]), float(p1[1])], "yaw": float(yaw)}
@@ -150,9 +134,9 @@ def derive(sensor):
 
     return {
         "legs": legs,
-                                                   
-        "swath_m": ground_far,                                    
-        "ground_near_m": ground_near,                              
+
+        "swath_m": ground_far,
+        "ground_near_m": ground_near,
         "ground_far_m": ground_far,
         "slant_near_m": slant_near,
         "slant_far_m": slant_far,
@@ -170,7 +154,7 @@ def derive(sensor):
         "ray_note": ray_note,
         "beam_reach_m": reach if np.isfinite(reach) else None,
         "beam_lo_deg": lo, "beam_hi_deg": hi,
-        "nadir_frac": blank_frac,                                
+        "nadir_frac": blank_frac,
         "nadir_ground_m": ground_far,
         "altitude_ratio": alt / rmax,
         "display_vmin_db": vmin_db, "display_vmax_db": vmax_db,
@@ -213,16 +197,15 @@ def _warnings(cfg, alt, rmax, reach, n_rays, rres):
     return w
 
 
-                                                                            
-    
-                                                                            
+
+
+
 _terrain_cache = {}
 _mesh_cache = {}
 PREVIEW_MAX_FACES = 15000
 
 
 def mesh_preview(catalog_id, target_size=None):
-    """카탈로그 자산 -> 3D 프리뷰 삼각형. FBX/OBJ 모두 webui/meshio.py 로 직접 읽는다."""
     key = (catalog_id, target_size)
     if key in _mesh_cache:
         return _mesh_cache[key]
@@ -248,7 +231,6 @@ def mesh_preview(catalog_id, target_size=None):
 
 
 def _mesh_from_grid(xs, ys, depth, max_cells=110):
-    """(xs, ys, depth[ny,nx]) -> 3D 표면 메쉬 dict. 지형 프리뷰/뷰 공용."""
     ny, nx = depth.shape
     sx = max(1, nx // max_cells); sy = max(1, ny // max_cells)
     z = -depth[::sy, ::sx]
@@ -274,8 +256,6 @@ def _mesh_from_grid(xs, ys, depth, max_cells=110):
 
 
 def terrain_preview(params):
-    """생성 파라미터 -> 3D 프리뷰. **실제 생성과 같은 함수**(make_terrain.build)를 쓴다.
-    미리보기와 결과가 다르면 파라미터를 눈으로 맞추는 의미가 없다."""
     import make_terrain as mt
     xs, ys, depth = mt.build(params)
     m = _mesh_from_grid(xs, ys, depth)
@@ -289,12 +269,6 @@ def terrain_preview(params):
 
 
 def terrain_mesh(csv_name, max_cells=110):
-    """heightfield -> 3D 표면 메쉬 (정점 + 삼각형 + 깊이별 정점색).
-
-    2D 히트맵과 달리 실제 시뮬레이터에서 보이는 기복을 그대로 보여준다.
-    소나가 보는 것은 이 표면의 경사(입사각)이므로, 기복을 눈으로 확인하는 것이
-    설정 판단에 직접 쓸모가 있다.
-    """
     g = terrain_grid(csv_name, max_cells=max_cells)
     if not g:
         return None
@@ -307,7 +281,7 @@ def terrain_mesh(csv_name, max_cells=110):
     zr = (zmax - zmin) or 1.0
 
     verts = np.stack([X.ravel(), Y.ravel(), np.nan_to_num(z.ravel(), nan=zmin)], 1)
-                                                   
+
     u = ((verts[:, 2] - zmin) / zr)[:, None]
     col = np.hstack([0.10 + u * 0.72, 0.26 + u * 0.42, 0.34 + u * 0.10,
                      np.ones_like(u)])
@@ -327,7 +301,6 @@ def terrain_mesh(csv_name, max_cells=110):
 
 
 def terrain_grid(csv_name, max_cells=140):
-    """heightfield CSV -> 히트맵용 다운샘플 격자."""
     if csv_name in _terrain_cache:
         return _terrain_cache[csv_name]
     p = pp.find_config_file(pathlib.Path("mado_terrain") / csv_name)
@@ -337,7 +310,7 @@ def terrain_grid(csv_name, max_cells=140):
     ix = raw["ix"].astype(int); iy = raw["iy"].astype(int)
     nx, ny = ix.max() + 1, iy.max() + 1
     z = np.full((ny, nx), np.nan)
-    z[iy, ix] = -raw["depth_m"]                                             
+    z[iy, ix] = -raw["depth_m"]
     sx = max(1, nx // max_cells); sy = max(1, ny // max_cells)
     zs = z[::sy, ::sx]
     out = {
@@ -351,9 +324,9 @@ def terrain_grid(csv_name, max_cells=140):
     return out
 
 
-                                                                            
-         
-                                                                            
+
+
+
 class Job:
     def __init__(self, jid, cmd, logpath, *, started=None, pid=None, recovered=False):
         self.id = jid
@@ -366,10 +339,9 @@ class Job:
         self.finished = None
         self.rc = None
         self.outdir = None
-        self.preview_path = None                          
+        self.preview_path = None
 
     def running(self):
-        """현재 서버가 만든 잡 또는 서버 재시작 뒤 복원한 잡의 실행 여부."""
         if self.proc is not None:
             return self.proc.poll() is None
         if not self.pid:
@@ -378,7 +350,7 @@ class Job:
             os.kill(int(self.pid), 0)
         except (OSError, ValueError):
             return False
-                                                        
+
         try:
             cmdline = pathlib.Path(f"/proc/{int(self.pid)}/cmdline").read_bytes()
             return b"large_dataset.py" in cmdline
@@ -391,16 +363,16 @@ class Job:
             log = pathlib.Path(self.logpath).read_text(errors="replace")
         except OSError:
             pass
-                                                   
-                                                                        
-                                                      
-                          
+
+
+
+
         if self.outdir is None:
             for line in log.splitlines():
                 if "완료:" in line and "data/images" in line:
                     self.outdir = line.rsplit("->", 1)[-1].strip()
                 elif line.startswith("[dataset-root] "):
-                                                                  
+
                     self.outdir = line.split("]", 1)[1].strip()
         dataset_status = None
         if self.outdir:
@@ -459,7 +431,6 @@ JOB_LOCK = threading.Lock()
 
 
 def _atomic_json(path, value):
-    """UI 서버가 죽거나 재시작돼도 현재 취득 잡을 잃지 않기 위한 작은 상태 파일."""
     path = pathlib.Path(path)
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(value, ensure_ascii=False, indent=2))
@@ -474,14 +445,12 @@ def _remember_active_job(job):
 
 
 def _active_job():
-    """가장 최근의 실행 중 잡. 새로고침/카드 토글에서도 같은 잡에 다시 연결한다."""
     with JOB_LOCK:
         running = [j for j in JOBS.values() if j.running()]
     return max(running, key=lambda j: j.started) if running else None
 
 
 def _restore_active_job():
-    """서버 재시작 뒤에도 기존 subprocess와 로그에 다시 연결한다."""
     try:
         raw = json.loads(ACTIVE_JOB_FILE.read_text())
         job = Job(str(raw["id"]), list(raw.get("cmd") or []), raw["logpath"],
@@ -515,8 +484,8 @@ def start_job(cmd):
     return job
 
 
-                                                               
-                                                  
+
+
 _restore_active_job()
 
 
@@ -546,16 +515,16 @@ def list_runs(limit=40):
     return out
 
 
-                                                                            
-      
-                                                                            
+
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
-    def log_message(self, fmt, *args):                    
+    def log_message(self, fmt, *args):
         pass
 
-                       
+
     def _send(self, code, body, ctype="application/json; charset=utf-8"):
         if isinstance(body, (dict, list)):
             body = json.dumps(body, ensure_ascii=False).encode()
@@ -572,7 +541,7 @@ class Handler(BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length") or 0)
         return json.loads(self.rfile.read(n) or b"{}")
 
-                      
+
     def do_GET(self):
         u = urllib.parse.urlparse(self.path)
         q = urllib.parse.parse_qs(u.query)
@@ -605,7 +574,7 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == "/file":
                 return self._file(q.get("path", [""])[0])
             return self._send(404, {"error": "not found"})
-        except Exception as e:                                              
+        except Exception as e:
             import traceback
             return self._send(500, {"error": str(e), "trace": traceback.format_exc()})
 
@@ -645,7 +614,7 @@ class Handler(BaseHTTPRequestHandler):
             import traceback
             return self._send(500, {"error": str(e), "trace": traceback.format_exc()})
 
-                               
+
     def _state(self):
         import object_catalog as oc
         import make_terrain as mt
@@ -674,7 +643,7 @@ class Handler(BaseHTTPRequestHandler):
         import re
         import make_terrain as mt
         name = str(b.get("name", "")).strip()
-                                             
+
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{1,48}", name):
             return {"error": "이름은 영문/숫자/_/- 2~49자여야 합니다: " + name}
         protected = {"mado_report_environment_v1", "mado_district1_environment_v1"}
@@ -707,11 +676,6 @@ class Handler(BaseHTTPRequestHandler):
                 "path": str(out.relative_to(ROOT)), "scenes": scenes}
 
     def _preview(self, b):
-        """취득 전 미리보기 — 시뮬레이터를 띄워 탑뷰 한 장을 찍는다.
-
-        취득과 같은 잡 관리를 쓴다(로그·중지 버튼 공용). 결과 PNG 는 data/preview 에
-        타임스탬프로 남겨, 설정을 바꿔가며 비교할 수 있게 한다.
-        """
         out = DATA / "preview" / (time.strftime("%Y%m%d-%H%M%S") + ".png")
         cmd = [sys.executable, str(SCRIPTS / "preview_scene.py"),
                "--out", str(out), "--size", str(int(b.get("size", 768)))]
@@ -729,11 +693,6 @@ class Handler(BaseHTTPRequestHandler):
         return {"job": job.id, "cmd": cmd, "preview": job.preview_path}
 
     def _manifest_save(self, b):
-        """UI 에서 편집한 씬(오브젝트 삭제 등)을 매니페스트에 되쓴다.
-
-        취득/미리보기가 읽는 것과 **같은 파일**을 고쳐야 편집이 실제로 반영된다.
-        경로는 data/scenes 아래로 제한한다.
-        """
         rel = str(b.get("path", ""))
         p = (ROOT / rel).resolve()
         scenes_dir = (DATA / "scenes").resolve()
@@ -745,9 +704,9 @@ class Handler(BaseHTTPRequestHandler):
         i = int(b.get("index", 0))
         if not (0 <= i < len(lines)):
             return {"error": f"index {i} 범위 밖 (총 {len(lines)}줄)"}
-                                                                         
-                                                      
-                                           
+
+
+
         def strip(d):
             return {k: v for k, v in d.items() if not k.startswith("_")}
         scene = strip(dict(b.get("scene") or {}))
@@ -759,7 +718,6 @@ class Handler(BaseHTTPRequestHandler):
         return {"ok": True, "objects": len(scene.get("objects", []))}
 
     def _dataset_acquire(self, b):
-        """고정 센서 + 균형 지형/경로 + 무작위 장면의 데이터셋 취득."""
         import re
         name = str(b.get("name") or "westsea_sss").strip()
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{1,48}", name):
@@ -832,7 +790,6 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(200, p.read_bytes(), ctype + "; charset=utf-8")
 
     def _file(self, rel):
-        """data/ 아래 파일만 서빙(경로 탈출 차단)."""
         if not rel:
             return self._send(400, {"error": "path required"})
         p = (ROOT / rel).resolve()

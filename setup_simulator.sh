@@ -31,7 +31,7 @@ if [ ! -d "$source_dir/.git" ]; then
 fi
 
 patch_file="$project_root/patches/shipwrecks-sim-holoocean-2.4.0.patch"
-if git -C "$source_dir" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
+if git -C "$source_dir" apply --unidiff-zero --reverse --check "$patch_file" >/dev/null 2>&1; then
   printf '[1/6] HoloOcean 소스 패치가 이미 적용되어 있습니다.\n'
 else
   if [ -n "$(git -C "$source_dir" status --porcelain)" ]; then
@@ -40,8 +40,8 @@ else
   fi
   git -C "$source_dir" fetch origin "$upstream_commit"
   git -C "$source_dir" checkout --detach "$upstream_commit"
-  git -C "$source_dir" apply --check "$patch_file"
-  git -C "$source_dir" apply "$patch_file"
+  git -C "$source_dir" apply --unidiff-zero --check "$patch_file"
+  git -C "$source_dir" apply --unidiff-zero "$patch_file"
   printf '[1/6] HoloOcean 2.4.0 기준 소스 패치를 적용했습니다.\n'
 fi
 

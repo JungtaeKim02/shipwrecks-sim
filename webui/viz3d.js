@@ -13,7 +13,7 @@
   const M = () => Scene3D.M;
   const deg = d => d * Math.PI / 180;
 
-  
+
   function compose(pos, rot, s) {
     const [rx, ry, rz] = (rot || [0, 0, 0]).map(deg);
     const cx=Math.cos(rx), sx=Math.sin(rx), cy=Math.cos(ry), sy=Math.sin(ry),
@@ -29,7 +29,7 @@
     return m;
   }
 
-  
+
 
 
   function terrainZAt(t, x, y) {
@@ -45,7 +45,7 @@
          + (Z(i0,j1)*(1-u) + Z(i1,j1)*u) * v;
   }
 
-  
+
   function gridLines(x0, x1, y0, y1, z, step) {
     const s = [];
     for (let x = Math.ceil(x0/step)*step; x <= x1; x += step) s.push(x,y0,z, x,y1,z);
@@ -53,20 +53,20 @@
     return s;
   }
 
-  
+
   class TerrainView {
     constructor(canvas) {
       this.sc = new Scene3D(canvas, { dist: 400, pitch: 0.5, yaw: -2.2, fogK: 0.0011 });
       this.meshCache = new Map();
-      this.selected = -1;      
-      this.showBeam = false;   
+      this.selected = -1;
+      this.showBeam = false;
     }
 
     async update(tmesh, d, scene, opts = {}) {
       const sc = this.sc; if (sc.dead) return;
       sc.clear();
       if (!tmesh || !tmesh.verts) {
-        
+
         const zb = opts.seabed_top_m ?? -20, E = 150;
         const b = [];
         b.push(-E,-E,zb, E,-E,zb, E,E,zb, -E,-E,zb, E,E,zb, -E,E,zb);
@@ -79,7 +79,7 @@
       sc.addMesh(tmesh.verts, tmesh.faces, null, { vcolors: tmesh.colors, flat: true });
       const zb = tmesh.zmax;
       const ex = Math.max(tmesh.x1 - tmesh.x0, tmesh.y1 - tmesh.y0) / 2;
-      
+
       const w = [];
       w.push(tmesh.x0,tmesh.y0,0, tmesh.x1,tmesh.y0,0, tmesh.x1,tmesh.y1,0,
              tmesh.x0,tmesh.y0,0, tmesh.x1,tmesh.y1,0, tmesh.x0,tmesh.y1,0);
@@ -91,11 +91,11 @@
 
     async _overlays(d, scene, zb, ex, tmesh, opts = {}) {
       const sc = this.sc;
-      
+
       if (d?.legs?.length) {
         const alt = d.altitude_m;
-        
-        
+
+
         const zs = (d.sensor_z_m !== undefined) ? d.sensor_z_m : (zb + alt);
         const hs = d.swath_m || 50;
         const track = [], ribbon = [];
@@ -108,20 +108,20 @@
           const C=[L.p1[0]-nx*hs, L.p1[1]-ny*hs], D=[L.p0[0]-nx*hs, L.p0[1]-ny*hs];
           ribbon.push(A[0],A[1],zr, B[0],B[1],zr, C[0],C[1],zr,
                       A[0],A[1],zr, C[0],C[1],zr, D[0],D[1],zr);
-          
+
           track.push(L.p0[0],L.p0[1],zs, L.p0[0],L.p0[1],zb);
         });
         sc.addMesh(ribbon, null, [0.29,0.66,1.0,0.16], { flat: false, alpha: true });
         sc.addLines(track, [0.98,0.99,1.0,0.95]);
 
-        
-        
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
+
         if (this.showBeam) {
           const lo = Math.max(d.beam_lo_deg, 0.2), hi = Math.min(d.beam_hi_deg, 89.8);
           const rMin = Math.max(opts.range_min_m ?? 0.5, 0.01);
@@ -129,7 +129,7 @@
           const NS = 5, NA = 16, MARCH = 90;
           const vol = [], edge = [], hitPts = [], missPts = [], innerArc = [];
 
-          
+
           const cast = (px, py, nx, ny, th) => {
             const c = Math.cos(th), sn = Math.sin(th);
             const zFlat = tmesh ? null : zb;
@@ -138,13 +138,13 @@
               const R = rMin + (rMax - rMin) * m / MARCH;
               const X = px + nx * R * c, Y = py + ny * R * c, Z = zs - R * sn;
               const g = tmesh ? terrainZAt(tmesh, X, Y) : zFlat;
-              
-              
-              
+
+
+
               if (g === null) return { R: prev, hit: false, offGrid: true };
               const above = Z > g;
               if (!above) {
-                
+
                 let a = prev, b = R;
                 for (let it = 0; it < 12; it++) {
                   const mid = (a + b) / 2;
@@ -156,7 +156,7 @@
               }
               prev = R; prevAbove = above;
             }
-            return { R: rMax, hit: false };   
+            return { R: rMax, hit: false };
           };
 
           d.legs.forEach(L => {
@@ -176,14 +176,14 @@
                   near.push([px + nx*rMin*c, py + ny*rMin*c, zs - rMin*sn]);
                   (r.hit ? hitPts : missPts).push(far[i][0], far[i][1], far[i][2]);
                 }
-                
+
                 for (let i = 0; i < NA; i++) {
                   const a0=near[i], a1=near[i+1], b0=far[i], b1=far[i+1];
                   vol.push(a0[0],a0[1],a0[2], b0[0],b0[1],b0[2], b1[0],b1[1],b1[2]);
                   vol.push(a0[0],a0[1],a0[2], b1[0],b1[1],b1[2], a1[0],a1[1],a1[2]);
                   innerArc.push(a0[0],a0[1],a0[2], a1[0],a1[1],a1[2]);
                 }
-                
+
                 [0, NA].forEach(i => {
                   edge.push(near[i][0],near[i][1],near[i][2], far[i][0],far[i][1],far[i][2]);
                   edge.push(px, py, zs, near[i][0],near[i][1],near[i][2]);
@@ -193,8 +193,8 @@
           });
           sc.addMesh(vol, null, [0.15,0.85,0.95,0.11], { flat:false, alpha:true });
           sc.addLines(edge, [0.30,0.92,1.0,0.55]);
-          sc.addLines(innerArc, [1.0,0.62,0.10,0.75]);       
-          
+          sc.addLines(innerArc, [1.0,0.62,0.10,0.75]);
+
           const dots = (arr, col) => {
             if (!arr.length) return;
             const seg = [];
@@ -213,15 +213,15 @@
         }
       }
 
-      
-      
-      
-      
-      
-      
-      
-      
-      
+
+
+
+
+
+
+
+
+
       if (scene?.objects?.length) {
         for (const o of scene.objects) {
           const m = await this._mesh(o.catalog_id, o._final_size_m);
@@ -230,9 +230,9 @@
           const z = o.position_m[2];
           const sel = scene.objects.indexOf(o) === this.selected;
           if (m && m.verts) {
-            
-            
-            
+
+
+
             const hz = (m.bbox_m ? m.bbox_m[2] : 0);
             const zb2 = z - hz * (o.burial_ratio || 0);
             const model = compose([o.position_m[0], o.position_m[1], zb2], o.rotation_deg,
@@ -240,7 +240,7 @@
             sc.addMesh(m.verts, m.faces, sel ? [1.0, 0.22, 0.26, 1] : col,
                        { model, flat: true, tag: o.catalog_id });
             if (sel) {
-              
+
               const b = m.bbox_m || [4,4,4];
               const P=[[-b[0]/2,-b[1]/2,-b[2]/2],[b[0]/2,-b[1]/2,-b[2]/2],
                        [b[0]/2,b[1]/2,-b[2]/2],[-b[0]/2,b[1]/2,-b[2]/2],
@@ -277,7 +277,7 @@
     }
   }
 
-  
+
   class ObjectView {
     constructor(canvas) {
       this.sc = new Scene3D(canvas, { dist: 4, pitch: 0.35, yaw: -0.9 });
@@ -289,10 +289,10 @@
       sc.addMesh(m.verts, m.faces, color || [0.80,0.82,0.86,1], { flat: true });
       const b = m.bbox_m;
       const r = Math.max(...b) / 2;
-      
+
       const g = Math.max(r * 1.6, 0.5);
       sc.addLines(gridLines(-g, g, -g, g, -b[2]/2, g/5), [1,1,1,0.13]);
-      
+
       const [X,Y,Z] = b.map(v=>v/2);
       const P = [[-X,-Y,-Z],[X,-Y,-Z],[X,Y,-Z],[-X,Y,-Z],[-X,-Y,Z],[X,-Y,Z],[X,Y,Z],[-X,Y,Z]];
       const E = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];

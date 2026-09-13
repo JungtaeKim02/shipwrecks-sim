@@ -1,43 +1,47 @@
 # Shipwrecks Sim
 
-HoloOcean 기반 수중 환경에서 양방향 사이드스캔 소나 영상, 일반 픽셀 마스크와 경계 상자를 저장하는 데이터셋 생성 도구입니다. 센서·환경·장면·저장 항목은 로컬 웹 UI에서 설정합니다.
+Shipwrecks Sim is a local dataset generator for side-scan sonar imagery. It runs on HoloOcean, generates a simulated underwater scene, and saves sonar images together with optional pixel masks, bounding boxes, NumPy arrays, previews, and session archives.
 
-## 예시 결과
+## Example output
 
-고정 시드 `20260911`, 100 m 주행 구간 5개, 총 2,500개 소나 신호를 취득한 예시입니다. 전체 산출물과 재현 설정은 [`examples/sample_dataset`](examples/sample_dataset)에 있습니다.
+The included example uses seed `20260911`, five 100 m survey legs, and 2,500 sonar pings. The complete example and its reproducibility files are in [`examples/sample_dataset`](examples/sample_dataset).
 
-| 3D 장면 | 소나 영상과 정답 경계 상자 |
+| Scene preview | Side-scan sonar with bounding boxes |
 |---|---|
-| ![3D scene preview](examples/sample_dataset/samples/scene_000000/preview.png) | ![Side-scan sonar with bounding boxes](examples/sample_dataset/samples/scene_000000/annotations/bbox_overlays/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg04.png) |
+| ![Scene preview](examples/sample_dataset/samples/scene_000000/preview.png) | ![Sonar image with bounding boxes](examples/sample_dataset/samples/scene_000000/annotations/bbox_overlays/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg04.png) |
 
 ![Pixel mask](examples/sample_dataset/samples/scene_000000/annotations/masks/waterfall_sss_ideal_coh3_f520_bw63_vb50_hb0.26_dep27.0_alt16.6_r0-69_res15.0cm_hd16_sp65_slant_beamon_tvgoff_abson_normon_leg04.png)
 
-가운데 검은 띠는 센서 바로 아래 구간이고 양옆은 좌현·우현 해저 반사입니다. 빨간 사각형은 물체 경계 상자, 흰색 픽셀은 물체 영역입니다. 이 예시는 RTX 5060 Ti 16 GB에서 약 94초가 걸렸습니다.
+The dark center band is the nadir region beneath the vehicle. The two sides are port and starboard seabed returns. Red rectangles are object bounding boxes; white pixels are object masks.
 
-## 기반 버전
+## Base software and project changes
 
-- 원본: [BYU HoloOcean](https://github.com/byu-holoocean/HoloOcean)
-- 기준: HoloOcean `2.4.0`, `develop`의 [커밋 136b87c1](https://github.com/byu-holoocean/HoloOcean/commit/136b87c1beabef00308d5be7ec7ebe1a80ef0117)
-- 엔진: Unreal Engine `5.3.2`
+- Upstream simulator: [BYU HoloOcean](https://github.com/byu-holoocean/HoloOcean)
+- Pinned source: HoloOcean `2.4.0`, `develop` commit [`136b87c1`](https://github.com/byu-holoocean/HoloOcean/commit/136b87c1beabef00308d5be7ec7ebe1a80ef0117)
+- Engine: Unreal Engine `5.3.2`
 
-원본에 레이 기반 양방향 사이드스캔 소나, 음향 신호 모델, 실행 중 지형·물체 배치, 픽셀 단위 물체 기록, 시드 기반 장면·항로 생성, 지형에 따른 고도·측정 거리 계산, 웹 UI와 선택적 결과 저장 기능을 추가했습니다. 변경 내용은 `patches/shipwrecks-sim-holoocean-2.4.0.patch` 하나에 들어 있으며 수정된 실행 파일은 배포하지 않습니다.
+The project adds a ray-based port/starboard side-scan sonar, acoustic signal processing, runtime terrain and object placement, object labels, seed-based scene and survey generation, geometry-aware acquisition settings, a local web UI, selective output saving, and dataset-session ZIP export.
 
-## 요구 환경
+All HoloOcean source modifications are contained in `patches/shipwrecks-sim-holoocean-2.4.0.patch`. A modified HoloOcean executable is not distributed; it is rebuilt locally from the pinned upstream source.
 
-| 항목 | 요구 또는 권장 사항 |
+## Asset origin
+
+The project assets were created from photographic reference material for shipwrecks and weathered or eroded objects associated with the western and southern seas of Korea. The reference imagery was converted into 3D assets with Meshy 6 and then prepared for simulation use. Asset metadata, dimensions, and source records are listed in `data/objects/asset_database.csv`.
+
+## Requirements
+
+| Item | Requirement or recommendation |
 |---|---|
-| 운영체제 | 64-bit Linux |
+| Operating system | 64-bit Linux |
 | Python | 3.10 |
-| GPU | NVIDIA GPU, VRAM 8 GB 이상 권장 |
-| 메모리 | 16 GB 이상 권장 |
-| 저장 공간 | 소스·빌드·자산을 위해 40 GB 이상 권장 |
-| 도구 | Git, Docker, NVIDIA Container Toolkit, curl, unzip |
+| GPU | NVIDIA GPU; 8 GB VRAM or more recommended |
+| Memory | 16 GB or more recommended |
+| Storage | At least 40 GB free for source, build output, and assets |
+| Tools | Git, Docker, NVIDIA Container Toolkit, curl, unzip |
 
-Unreal Engine 컨테이너를 받으려면 Epic Games 계정과 연결된 GitHub 계정이 필요합니다. 주행 거리, 장면 수, 물체 수와 소나 광선 수가 늘어나면 데이터 취득 시간과 GPU 부하도 커집니다.
+Building the Unreal project requires access to the Unreal Engine container image. Link your Epic Games and GitHub accounts following [Epic's GitHub access guide](https://www.unrealengine.com/en-US/ue-on-github), then sign in to the container registry.
 
-## 설치
-
-먼저 [Epic의 Unreal Engine GitHub 접근 안내](https://www.unrealengine.com/en-US/ue-on-github)에 따라 계정을 연결하고 컨테이너 레지스트리에 로그인합니다.
+## Installation
 
 ```bash
 docker login ghcr.io
@@ -47,31 +51,51 @@ cd shipwrecks-sim
 ./setup_simulator.sh
 ```
 
-설치 스크립트는 원본 HoloOcean을 받고 기준 커밋에 패치를 적용한 뒤, Release의 3D 자산을 받아 Unreal 프로젝트에 구성합니다. 이어 TestWorlds를 직접 빌드·설치하고 Python 가상환경까지 준비합니다. 전체 빌드는 시스템에 따라 수십 분 이상 걸릴 수 있습니다.
+The setup script clones the pinned HoloOcean `develop` commit, applies the project patch, downloads the Release asset archive, imports the meshes and terrain configuration, builds TestWorlds, installs the world locally, and creates the Python environment. The Unreal build can take several minutes or longer.
 
-이미 받은 자산 ZIP을 쓰려면 경로를 지정합니다.
+To reuse an already downloaded asset archive:
 
 ```bash
 SHIPWRECKS_ASSET_ARCHIVE=/path/to/holoocean-sss-assets-v0.2.0.zip ./setup_simulator.sh
 ```
 
-Release에는 실행 ZIP이 없으며 `holoocean-sss-assets-v0.2.0.zip`만 제공합니다. 이 파일에는 3D 메시, 썸네일, 자산 설명 CSV와 런타임 카탈로그가 들어 있습니다.
+The GitHub Release contains the asset archive and its SHA-256 checksum. It does not contain a simulator executable.
 
-## 데이터셋 취득
+## Launch the web UI
 
 ```bash
 source .venv/bin/activate
 python webui/server.py
 ```
 
-브라우저에서 <http://127.0.0.1:8765>를 열고 다음 순서로 진행합니다.
+Open <http://127.0.0.1:8765> in a browser.
 
-1. **센서 파라미터**와 **환경**에서 고정값을 정하고 **설정 저장**을 누릅니다.
-2. **데이터셋 취득**에서 장면 수, 시작 시드, 다양화 범위와 저장 결과를 선택합니다.
-3. **취득 설명**에서 고정값·무작위값·자동 계산값을 확인합니다.
-4. **계획만 생성**으로 예상 시간과 경고를 확인한 뒤 **데이터셋 취득 시작**을 누릅니다.
+## Web UI guide
 
-결과는 기본적으로 `data/datasets/<날짜와 시각>/`에 장면별로 저장됩니다. 워터폴 PNG는 고정된 하나의 데시벨 표시 범위로만 생성됩니다.
+Use the UI in this order for a normal acquisition.
+
+1. In **Sensor Parameters**, set the fixed sonar settings such as frequency, bandwidth, beam width, range resolution, and signal-processing options.
+2. In **Environment**, set the water and sea-state settings used during acquisition.
+3. In **Field (Terrain)**, choose a terrain. Use **Create Terrain** only when a new procedural terrain variant is needed.
+4. In **Objects**, select asset categories or open **Asset Library** to inspect individual meshes, enable or exclude them, and apply the selection.
+5. In **Survey Plan / Scene Generation**, choose the platform, seed, number of legs, and route settings, then click **Generate Scene**. Use **Use My Sensor Values** when the manually selected sensor values should be kept for that scene.
+6. Use **Scene Visualization** to inspect the result. The **3D** and **Top View** buttons switch views; **Fit View** frames the scene; **Show Sensor Beam** displays the calculated coverage. Objects can be selected and adjusted in the 3D view.
+7. Click **Save Settings** in the header before a run. **Capture Preview** saves a quick scene preview. **Stop** requests a safe stop for an active acquisition and keeps already completed samples.
+
+### Dataset Acquisition panel
+
+Use this panel for normal dataset production rather than one-off manual collection.
+
+- **Acquisition Guide** explains which settings are fixed by the user, randomized for each scene, or calculated automatically from terrain geometry.
+- **Dataset Name**, **Scene Count**, and **Start Seed** define the session identity and reproducible scene sequence.
+- Object-density, wreck-tilt, receiver-noise, speckle, and seabed-texture controls define the allowed scene variation.
+- **Outputs to Save** selects the files written for every scene: waterfall PNG, true-aspect PNG, raw NumPy, processed dB NumPy, pixel mask, YOLO bounding box, bounding-box review image, scene preview, and optional session ZIP.
+- **Generate Plan Only** creates the planned scenes and time estimate without running the simulator.
+- **Start Dataset Acquisition** runs the planned session.
+
+The **Run** panel shows progress, logs, previews, and generated images. **Previous Acquisitions** lists earlier sessions. Waterfall PNG output uses one fixed display dynamic range; alternate display-range augmentations are not generated.
+
+## Output layout
 
 ```text
 data/datasets/<session>/
@@ -89,9 +113,9 @@ data/datasets/<session>/
         └── bbox_overlays/
 ```
 
-중지해도 완료된 장면은 유지됩니다. `ZIP 내보내기`를 선택하면 완료 후 전체 세션을 한 파일로 묶습니다.
+Completed samples remain available if a run is stopped. Selecting ZIP export creates one archive for the completed dataset session.
 
-## 명령행 예시 재현
+## Reproduce the included example
 
 ```bash
 python scripts/large_dataset.py \
@@ -99,12 +123,12 @@ python scripts/large_dataset.py \
   --dataset-root data/datasets/example_reproduced
 ```
 
-동일한 시드는 장면과 설정을 재현합니다. GPU와 드라이버 차이로 모든 부동소수점 값이 비트 단위로 같다고 보장하지는 않습니다.
+The same seed recreates the planned scene and configuration. Exact floating-point values can differ across GPU and driver versions.
 
-## 배포 구성
+## Distribution layout
 
-- Git 저장소: 웹 UI, 취득 코드, 단일 HoloOcean 소스 패치, 빌드 자동화, 지형 설정, 예시 데이터
-- GitHub Release: 3D 메시와 자산 설명 CSV를 포함한 자산 ZIP, SHA-256 체크섬
-- 원본 HoloOcean 및 Unreal Engine: 각 사용자가 공식 경로에서 직접 받아 빌드
+- Git repository: web UI, acquisition pipeline, HoloOcean source patch, build automation, terrain configuration, and example dataset
+- GitHub Release: 3D asset archive and SHA-256 checksum
+- Upstream HoloOcean and Unreal Engine: obtained and built locally by each user
 
-HoloOcean과 Unreal Engine에는 각각의 원본 라이선스가 적용됩니다. 3D 자산 출처 정보는 `data/objects/asset_database.csv`에 기록되어 있습니다.
+HoloOcean and Unreal Engine remain subject to their respective upstream licenses.

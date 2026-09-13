@@ -24,11 +24,11 @@ const sv = (t, a = {}) => {
 const fmt = (v, d = 2) => (v === null || v === undefined || Number.isNaN(v)) ? '—' : (+v).toFixed(d);
 
 let STATE = null, DERIVED = null, SCENE = null, JOB = null, TERRAIN = null;
-let TMESH = null;                       
+let TMESH = null;
 let V3 = { terr: null, obj: null, tgen: null };
-let EXCLUDED = new Set();               
+let EXCLUDED = new Set();
 let LIB = { sel: null, cat: '', onlyOn: false };
-let TGMESH = null;       
+let TGMESH = null;
 
 
 
@@ -99,7 +99,7 @@ function buildForms() {
     sf.append(numRow(k, l, u, st, t, v));
   });
   SENSOR_TOGGLES.forEach(([k, l, t]) => sf.append(chkRow(k, l, t, s[k])));
-  
+
   const cm = el('select', { id: 'f-crop_mode' });
   CROP_MODES.forEach(([v, lbl]) => cm.append(el('option', { value: v }, lbl)));
   cm.value = s.crop_mode || 'geometric';
@@ -107,7 +107,7 @@ function buildForms() {
   sf.append(el('div', { class: 'row', title: '빔이 안 닿는 구간을 어디까지 잘라낼지' },
     el('label', {}, '유효거리 크롭'), cm));
 
-  
+
   const tf = $('#track-form');
   if (tf) {
     tf.textContent = '';
@@ -128,12 +128,12 @@ function buildForms() {
   });
   ef.append(el('div', { class: 'kv', id: 'env-kv', style: 'margin-top:8px' }));
 
-  
+
   const ts = $('#terrain-sel'); ts.textContent = '';
   STATE.terrains.forEach(t => ts.append(el('option', { value: t.id }, t.id)));
   ts.addEventListener('change', () => { loadTerrain(); scheduleDerive(); });
 
-  
+
   const cf = $('#cat-form'); cf.textContent = '';
   cf.append(el('div', { class: 'objrow objhead' },
     el('div', {}, '카테고리 (재질 · 자산 수 · 실물 크기대)'),
@@ -189,7 +189,7 @@ function readSensor() {
                     parseFloat($('#f-current_y_ms').value) || 0, 0];
   const t = STATE.terrains.find(t => t.id === $('#terrain-sel').value);
   if (t) { out.seabed_top_m = t.seabed_top_m; out.flat_seabed = $('#f-flat_seabed').checked; }
-  
+
   out.platform = $('#platform')?.value || 'ideal';
   const nl = parseInt($('#n_legs')?.value, 10);
   if (!Number.isNaN(nl)) out.n_legs = nl;
@@ -208,15 +208,15 @@ const sN = k => { const v = parseFloat($('#f-' + k)?.value); return Number.isNaN
 
 let deriveSeq = 0;
 async function doDerive() {
-  
-  
+
+
   const seq = ++deriveSeq;
   const r = await fetch('/api/derive', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sensor: readSensor() })
   });
   const d = await r.json();
-  if (seq !== deriveSeq) return;            
+  if (seq !== deriveSeq) return;
   if (d.error) { console.error(d); return; }
   DERIVED = d;
   renderDerived(); drawMap();
@@ -225,7 +225,7 @@ async function doDerive() {
 
 
 function draw3D() {
-  
+
   if (!DERIVED) return;
   const s = readSensor();
   if (V3.terr) {
@@ -291,9 +291,9 @@ function drawMap() {
   const s = Math.min(sx, sy);
   const cx = (W - (X1 - X0) * s) / 2, cy = (H - (Y1 - Y0) * s) / 2;
   const px = x => cx + (x - X0) * s;
-  const py = y => cy + (Y1 - y) * s;          
+  const py = y => cy + (Y1 - y) * s;
 
-  
+
   if (TERRAIN) {
     const cv = document.createElement('canvas');
     cv.width = TERRAIN.nx; cv.height = TERRAIN.ny;
@@ -304,8 +304,8 @@ function drawMap() {
       const v = TERRAIN.z[i];
       const o = i * 4;
       if (v === null) { img.data[o + 3] = 0; continue; }
-      const u = (v - TERRAIN.zmin) / zr;         
-      
+      const u = (v - TERRAIN.zmin) / zr;
+
       img.data[o] = 30 + u * 195;
       img.data[o + 1] = 60 + u * 140;
       img.data[o + 2] = 90 + u * 40;
@@ -328,14 +328,14 @@ function drawMap() {
     fill: 'none', stroke: '#2b3444', 'stroke-width': 1.4
   }));
 
-  
+
   const d = DERIVED;
   if (d?.legs?.length) {
     const halfSwath = d.swath_m;
     d.legs.forEach((L, i) => {
       const dx = L.p1[0] - L.p0[0], dy = L.p1[1] - L.p0[1];
       const len = Math.hypot(dx, dy) || 1;
-      const nx = -dy / len, ny = dx / len;        
+      const nx = -dy / len, ny = dx / len;
       const poly = [
         [L.p0[0] + nx * halfSwath, L.p0[1] + ny * halfSwath],
         [L.p1[0] + nx * halfSwath, L.p1[1] + ny * halfSwath],
@@ -351,7 +351,7 @@ function drawMap() {
     });
   }
 
-  
+
   if (SCENE?.objects) {
     SCENE.objects.forEach(o => {
       const isWreck = (o.tags || []).includes('wreck');
@@ -371,7 +371,7 @@ function drawMap() {
   txt(px(X0), py(Y1) - 8, `${t?.id || '평탄'} — ${(X1 - X0).toFixed(0)} × ${(Y1 - Y0).toFixed(0)} m`, '#8b98a8');
   if (TERRAIN) txt(px(X1), py(Y1) - 8, `z ${fmt(TERRAIN.zmin, 1)} ~ ${fmt(TERRAIN.zmax, 1)} m`, '#8b98a8', 'end');
   if (d?.swath_m) txt(px(X0), py(Y0) + 16, `스와스 한쪽 ${fmt(d.swath_m, 0)} m · leg ${d.legs?.length || 0}개`, '#4aa8ff');
-  
+
   if (d?.legs?.length && t?.extent_m) {
     const out = d.legs.some(L => {
       const dx = L.p1[0] - L.p0[0], dy = L.p1[1] - L.p0[1], len = Math.hypot(dx, dy) || 1;
@@ -391,7 +391,7 @@ function drawMap() {
 
 async function saveSensor() {
   const sensor = readSensor();
-  
+
   ['seabed_top_m', 'platform', 'n_legs', 'survey', 'leg_spacing_m',
    'survey_heading_deg', 'track_x0_m', 'track_x1_m'].forEach(k => delete sensor[k]);
   await fetch('/api/save_sensor', {
@@ -426,14 +426,14 @@ function flash(btn, msg) {
 
 async function genManifest() {
   const b = $('#btn-manifest'); b.disabled = true; b.textContent = '생성 중…';
-  await saveScene();          
+  await saveScene();
   const r = await fetch('/api/manifest', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       n: 1, seed: parseInt($('#seed').value, 10) || 0,
       terrain: $('#terrain-sel').value, out: 'webui_scene.jsonl',
       wreck_tilt_deg: parseFloat($('#manual-wreck-tilt').value),
-      
+
       survey_override: $('#use-my-sensor').checked ? {
         range_max_m: sN('range_max_m'), range_min_m: sN('range_min_m'),
         altitude_m: sN('altitude_m'), depression_deg: sN('depression_deg'),
@@ -451,7 +451,7 @@ async function genManifest() {
   SCENE._path = d.path;
   annotateScene();
   const s = SCENE.survey;
-  
+
   const counts = {};
   (SCENE.objects || []).forEach(o => {
     const c = String(o.catalog_id || '?').split('/')[0];
@@ -468,11 +468,11 @@ async function genManifest() {
     ['매니페스트', d.path],
   ]);
   renderPlaced();
-  
-  
-  
-  
-  
+
+
+
+
+
   if (!$('#use-my-sensor').checked) {
     ['range_max_m', 'depression_deg', 'altitude_m', 'range_res_m', 'wind_speed_ms']
       .forEach(k => { if (s[k] !== undefined && $('#f-' + k)) $('#f-' + k).value = s[k]; });
@@ -483,11 +483,11 @@ async function genManifest() {
 }
 
 async function preview() {
-  
-  
+
+
   const ov = formOverrides();
-  
-  
+
+
   if (!SCENE) ov.terrain = $('#terrain-sel').value;
   const r = await fetch('/api/preview', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -518,19 +518,19 @@ async function preview() {
 function formOverrides() {
   const s = readSensor();
   const ov = {};
-  
+
   Object.entries(s).forEach(([k, v]) => {
     if (v === undefined || v === '') return;
-    if (k === 'survey') return;                      
+    if (k === 'survey') return;
     ov[k] = Array.isArray(v) ? JSON.stringify(v) : v;
   });
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
   delete ov.seabed_top_m;
   delete ov.flat_seabed;
   ov.range_res_m = $('#f-range_res_m').value || 'auto';
@@ -549,8 +549,8 @@ async function pollJob() {
   const d = await r.json();
   $('#log').textContent = d.log || '';
   $('#log').scrollTop = $('#log').scrollHeight;
-  
-  
+
+
   const pm = [...(d.log || '').matchAll(
     /\[progress\] (\S+) (\d+)\/(\d+) ([\d.]+)% 경과 (\d+)s 남음 (\d+|-)s?/g)].pop();
   const em = [...(d.log || '').matchAll(/\[dataset-estimate\] (\{[^\n]+\})/g)].pop();
@@ -599,7 +599,7 @@ async function pollJob() {
     $('#preview-img').src = url;
     $('#preview-img').onclick = () => openModal(url);
     $('#preview-box').style.display = '';
-    
+
     const m = (d.log || '').match(/화면 폭 약 (\d+) m/);
     $('#preview-cap').textContent = '시뮬레이터 탑뷰 미리보기'
       + (m ? ` — 화면 폭 약 ${m[1]} m · 오른쪽=+X, 위=+Y` : '');
@@ -609,8 +609,8 @@ async function pollJob() {
 }
 
 async function restoreActiveJob() {
-  
-  
+
+
   try {
     const d = await (await fetch('/api/active_job')).json();
     if (!d || !d.id || !d.running) return;
@@ -689,10 +689,10 @@ function renderPlaced() {
           + `(${o.position_m[0].toFixed(0)}, ${o.position_m[1].toFixed(0)}) m · `
           + `매몰 ${(o.burial_ratio*100).toFixed(0)}%`)),
       el('button', { onclick: e => { e.stopPropagation(); removePlaced(i); } }, '삭제'));
-    
+
     node.addEventListener('mouseenter', () => showObjPop(node, o));
     node.addEventListener('mouseleave', hideObjPop);
-    
+
     node.addEventListener('click', () => selectPlaced(i));
     node.addEventListener('dblclick', () => {
       hideObjPop();
@@ -719,7 +719,7 @@ function renderBeamStats() {
 }
 
 
-let SEL = -1;                       
+let SEL = -1;
 
 function selectPlaced(i) {
   SEL = (SEL === i) ? -1 : i;
@@ -841,7 +841,7 @@ function bindTerrainEdit() {
 }
 
 
-const THUMBS = new Map();           
+const THUMBS = new Map();
 let thumbScene = null, popTimer = null;
 
 function thumbFor(id, sizeM) {
@@ -855,7 +855,7 @@ function thumbFor(id, sizeM) {
       cv.width = 260; cv.height = 190;
       cv.style.cssText = 'position:fixed;left:-9999px;width:260px;height:190px';
       document.body.append(cv);
-      
+
       thumbScene = new Scene3D(cv, { keepBuffer: true, dist: 4, pitch: 0.4, yaw: -0.9 });
       if (thumbScene.dead) return null;
     }
@@ -924,7 +924,7 @@ async function removePlaced(i) {
     body: JSON.stringify({ path: SCENE._path, index: 0, scene: SCENE })
   });
   renderPlaced();
-  
+
   const counts = {};
   SCENE.objects.forEach(o => {
     const c = String(o.catalog_id || '?').split('/')[0];
@@ -1037,7 +1037,7 @@ async function tgPreview() {
   TGMESH = m;
   $('#tg-stat').textContent = `${m.grid[0]}×${m.grid[1]} · 기복 ${m.relief_m.toFixed(2)} m`;
   V3.tgen?.update(m, null, null, {});
-  const alt10 = m.relief_m;               
+  const alt10 = m.relief_m;
   kv($('#tg-kv'), [
     ['격자', `${m.grid[0]} × ${m.grid[1]} = ${(m.grid[0]*m.grid[1]).toLocaleString()} 정점`],
     ['수심', `${m.depth_min_m.toFixed(2)} ~ ${m.depth_max_m.toFixed(2)} m`],
@@ -1057,7 +1057,7 @@ async function tgCreate() {
   }).then(r => r.json()).catch(e => ({ error: String(e) }));
   b.disabled = false; b.textContent = '생성 · 등록';
   if (r.error) { alert('생성 실패:\n' + r.error); return; }
-  
+
   STATE = await (await fetch('/api/state')).json();
   const ts = $('#terrain-sel'); ts.textContent = '';
   STATE.terrains.forEach(t => ts.append(el('option', { value: t.id }, t.id)));
@@ -1172,7 +1172,7 @@ function initTabs(id, panes) {
       b.classList.add('on');
       Object.entries(panes).forEach(([k, sel]) =>
         $(sel).style.display = (k === b.dataset.v) ? '' : 'none');
-      
+
       if (b.dataset.v === '3d') {
         draw3D();
         V3.terr?.sc.refresh();
@@ -1187,58 +1187,58 @@ function initTabs(id, panes) {
 
 
 
-/* 예전 사용자 정의 sweep 화면은 단일 데이터셋 취득 흐름으로 통합했다.
-  const ss = (STATE.scene && STATE.scene.survey_sampling) || {};
-  const s = STATE.sensor;
-  const box = $('#sw-axes'); if (!box) return;
-  box.textContent = '';
-  SWEEP_AXES.forEach(([k, label, unit, step]) => {
-    const d = ss[k];
-    const lo = Array.isArray(d) ? d[0] : (s[k] ?? 0);
-    const hi = Array.isArray(d) ? (d[1] ?? d[0]) : (s[k] ?? 0);
-    const on = el('input', { type: 'checkbox', class: 'chk', id: 'sw-on-' + k });
-    const a = el('input', { type: 'number', id: 'sw-lo-' + k, value: lo, step });
-    const b = el('input', { type: 'number', id: 'sw-hi-' + k, value: hi, step });
-    const row = el('div', { class: 'sw-ax off' }, on,
-      el('div', { class: 'nm' }, label, unit ? el('span', { class: 'u' }, unit) : ''), a, b);
-    on.addEventListener('change', () => { row.classList.toggle('off', !on.checked); estSweep(); });
-    box.append(row);
-  });
 
-  
-  const tb = $('#sw-terrains'); tb.textContent = '';
-  (STATE.terrains || []).forEach(t => {
-    const c = el('input', { type: 'checkbox', class: 'chk', 'data-t': t.id });
-    const lab = el('label', {}, c, t.id);
-    c.addEventListener('change', () => { lab.classList.toggle('on', c.checked); estSweep(); });
-    tb.append(lab);
-  });
 
-  
-  const ob = $('#sw-objects'); ob.textContent = '';
-  const mats = (STATE.materials || []).map(m => m.id);
-  const engineMats = ['M_CobbleStone_Rough', 'M_Metal_Steel', 'M_Wood_Pine',
-    'M_Brown_Sand', 'ShipwreckProjectAnchorStone', 'ShipwreckProjectReefRock'];
-  ob.append(el('div', { class: 'sw-obj', style: 'color:var(--dim);font-size:11px' },
-    el('div', {}, '카테고리'), el('div', {}, '최소'), el('div', {}, '최대'), el('div', {}, '재질 후보')));
-  Object.entries(STATE.scene.object_categories || {}).forEach(([name, c]) => {
-    const [lo, hi] = c.count_range || [0, 0];
-    const a = el('input', { type: 'number', id: 'sw-c-lo-' + name, value: lo, step: 1 });
-    const b = el('input', { type: 'number', id: 'sw-c-hi-' + name, value: hi, step: 1 });
-    const sel = el('select', { id: 'sw-m-' + name, multiple: true, size: 3 });
-    engineMats.forEach(m => {
-      const o = el('option', { value: m }, m);
-      if (m === c.material) o.selected = true;
-      sel.append(o);
-    });
-    sel.title = '두 개 이상 고르면 샘플마다 무작위로 하나를 씁니다 (재질 다양화). '
-      + '하나만 고르면 그 재질로 고정됩니다.';
-    [a, b].forEach(x => x.addEventListener('input', estSweep));
-    ob.append(el('div', { class: 'sw-obj' }, el('div', {}, name), a, b, sel));
-  });
-  estSweep();
-}
-*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 async function runLargeDataset(dry) {
   const outputs = {
@@ -1327,7 +1327,7 @@ async function init() {
   if (Number.isFinite(+largeDefaults.texture_cv))
     $('#lg-texture-cv').value = largeDefaults.texture_cv;
 
-  
+
   try {
     V3.terr = new Viz3D.TerrainView($('#cv-terrain'));
     V3.obj = new Viz3D.ObjectView($('#cv-obj'));
@@ -1346,7 +1346,7 @@ async function init() {
   await doDerive();
   loadRuns();
 
-  
+
   const catSel = $('#lib-cat');
   [...new Set((STATE.catalog || []).map(o => o.category))].sort()
     .forEach(c => catSel.append(el('option', { value: c }, c)));
@@ -1386,7 +1386,7 @@ async function init() {
   $('#btn-catalog').addEventListener('click', () => {
     $('#lib').classList.add('on');
     libRender();
-    V3.obj?.sc.refresh();          
+    V3.obj?.sc.refresh();
     if (!LIB.sel && STATE.catalog?.length) libSelect(STATE.catalog[0].id);
   });
   $('#modal').addEventListener('click', () => $('#modal').classList.remove('on'));
@@ -1404,7 +1404,7 @@ async function init() {
   });
   bindTerrainEdit();
 
-  
+
   tgBuildForm();
   const ps = $('#tg-preset');
   ps.append(el('option', { value: '' }, '프리셋 선택…'));
@@ -1412,7 +1412,7 @@ async function init() {
   ps.addEventListener('change', () => {
     const pr = STATE.terrain_presets?.[ps.value];
     if (!pr) return;
-    
+
     TG_GROUPS.forEach(([, f]) => f.forEach(([k, , , , dv]) => {
       if ($('#tg-' + k)) $('#tg-' + k).value = (k in pr) ? pr[k] : dv;
     }));

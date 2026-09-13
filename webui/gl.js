@@ -35,7 +35,7 @@ void main(){
   gl_FragColor = vec4(c, vCol.a);
 }`;
 
-  
+
   const M = {
     ident: () => new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]),
     mul(a, b) {
@@ -57,7 +57,7 @@ void main(){
         -dot(x,e), -dot(y,e), -dot(z,e), 1]);
     },
     trans(t) { const m = M.ident(); m[12]=t[0]; m[13]=t[1]; m[14]=t[2]; return m; },
-    
+
     invert(m) {
       const i = new Float32Array(16), a = m;
       i[0]  =  a[5]*a[10]*a[15] - a[5]*a[11]*a[14] - a[9]*a[6]*a[15] + a[9]*a[7]*a[14] + a[13]*a[6]*a[11] - a[13]*a[7]*a[10];
@@ -88,11 +88,11 @@ void main(){
   const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
   const norm=a=>{const l=Math.hypot(...a)||1; return [a[0]/l,a[1]/l,a[2]/l];};
 
-  
+
   class Scene3D {
     constructor(canvas, opts = {}) {
       this.cv = canvas;
-      
+
       const gl = this.gl = canvas.getContext('webgl', {
         antialias: true, alpha: !!opts.alpha,
         preserveDrawingBuffer: !!opts.keepBuffer });
@@ -110,11 +110,11 @@ void main(){
         uFog: gl.getUniformLocation(this.prog, 'uFog'),
       };
       this.objects = [];
-      this.userMoved = false;      
-      this._lastFrame = null;      
+      this.userMoved = false;
+      this._lastFrame = null;
       this.bg = opts.bg || [0.043, 0.059, 0.082];
       this.fogK = opts.fogK ?? 0.0;
-      
+
       this.cam = { yaw: opts.yaw ?? -0.9, pitch: opts.pitch ?? 0.55,
                    dist: opts.dist ?? 200, target: opts.target || [0, 0, 0] };
       this._bindControls();
@@ -184,7 +184,7 @@ void main(){
       this.objects = [];
     }
 
-    
+
 
     addMesh(verts, faces, color, opt = {}) {
       const gl = this.gl;
@@ -192,8 +192,8 @@ void main(){
       const F = faces ? (faces instanceof Uint32Array || faces instanceof Uint16Array
         ? faces : new Uint32Array(faces)) : null;
       const n = F ? F.length : V.length / 3;
-      
-      
+
+
       const out = new Float32Array(n * 10);
       const vc = opt.vcolors || null;
       for (let t = 0; t < n; t += 3) {
@@ -219,7 +219,7 @@ void main(){
       return o;
     }
 
-    
+
     addLines(segs, color, opt = {}) {
       const gl = this.gl;
       const n = segs.length / 3;
@@ -239,7 +239,7 @@ void main(){
       return o;
     }
 
-    
+
     static box(c, s) {
       const [x,y,z]=c, [a,b,d]=[s[0]/2,s[1]/2,s[2]/2];
       const P=[[x-a,y-b,z-d],[x+a,y-b,z-d],[x+a,y+b,z-d],[x-a,y+b,z-d],
@@ -250,7 +250,7 @@ void main(){
       return v;
     }
 
-    
+
 
 
 
@@ -265,14 +265,14 @@ void main(){
       this.draw();
     }
 
-    
+
     resetView() {
       this.userMoved = false;
       if (this._lastFrame) this.frame(this._lastFrame[0], this._lastFrame[1], true);
       else this.draw();
     }
 
-    
+
 
     refresh() {
       if (this.dead) return;
@@ -291,7 +291,7 @@ void main(){
       gl.useProgram(this.prog);
 
       const c = this.cam;
-      
+
       const cp = Math.cos(c.pitch), sp = Math.sin(c.pitch);
       const eye = [c.target[0] + c.dist * cp * Math.cos(c.yaw),
                    c.target[1] + c.dist * cp * Math.sin(c.yaw),
@@ -305,7 +305,7 @@ void main(){
       gl.uniform1f(this.loc.uFogK, this.fogK);
       gl.uniform3fv(this.loc.uFog, new Float32Array(this.bg));
 
-      
+
       const pass = (alpha) => {
         gl.depthMask(!alpha);
         if (alpha) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); }
@@ -329,13 +329,13 @@ void main(){
       pass(false); pass(true);
       gl.depthMask(true);
 
-      
-      
+
+
       this._vp = VP;
       if (this.onDraw) this.onDraw(this);
     }
 
-    
+
     rayFromScreen(sx, sy) {
       if (!this._vp) return null;
       const inv = M.invert(this._vp);
@@ -353,7 +353,7 @@ void main(){
       return { o: a, d };
     }
 
-    
+
     static hitPlaneZ(ray, z) {
       if (!ray || Math.abs(ray.d[2]) < 1e-6) return null;
       const t = (z - ray.o[2]) / ray.d[2];
@@ -361,7 +361,7 @@ void main(){
       return [ray.o[0] + ray.d[0]*t, ray.o[1] + ray.d[1]*t, z];
     }
 
-    
+
     project(p) {
       if (!this._vp) return { visible: false };
       const m = this._vp;

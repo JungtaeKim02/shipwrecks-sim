@@ -1,21 +1,3 @@
-"""재현 가능한 SSS 데이터셋 취득.
-
-한 번의 실행에서 생기는 매니페스트, 고정 센서 스냅샷, 로그, PNG/GT, raw/processed
-배열과 결과 인덱스를 모두 ``data/datasets/<dataset_id>/`` 아래에 보관한다.
-
-다양성 계약
-------------
-* available 지형을 섞은 뒤 순환하므로 충분한 장 수에서는 모든 맵을 사용한다.
-* track 길이 1/4, 1/2, 전체를 섞은 뒤 순환한다.
-* 씬 seed마다 방위, leg 수/간격, 고도, 오브젝트 종류/위치/자세/매몰을 다시 뽑는다.
-* 음향/수신/후처리 설정은 시작 시 sss_config.json 스냅샷으로 얼린다.
-* speckle/noise seed만 씬마다 결정적으로 바꿔 재현 가능한 서로 다른 realization을 만든다.
-
-사용:
-  python3 scripts/large_dataset.py --spec spec.json --dry-run
-  python3 scripts/large_dataset.py --spec spec.json
-  python3 scripts/large_dataset.py --dataset-root data/datasets/<id> --resume
-"""
 from __future__ import annotations
 
 import argparse
@@ -43,16 +25,16 @@ SENSOR_CFG = SCRIPTS / "sss_config.json"
 SCENE_CFG = SCRIPTS / "scene_config.json"
 sys.path.insert(0, str(SCRIPTS))
 
-import object_catalog as oc  # noqa: E402
-import scene_manifest as sm  # noqa: E402
+import object_catalog as oc
+import scene_manifest as sm
 
 STOP_REQUESTED = False
 ACTIVE_PROCESS = None
 
-# 2026-08-09 이 머신의 coherent-v3 실제 smoke(12,494 elevation rays)에서 ping당
-# 약 0.415 s. 2026-08-10 dense-object/35-degree smoke measured roughly 10 s total
-# preview+acquisition startup and 6 s for 400 short-range pings.  These are only
-# plan estimates; the first completed scene still recalibrates all remaining work.
+
+
+
+
 REFERENCE_ELEV_RAYS = 12494.0
 REFERENCE_SECONDS_PER_PING = 0.415
 PREVIEW_BOOT_SECONDS = 6.0
@@ -71,17 +53,17 @@ DEFAULT_OUTPUTS = {
 }
 
 
-# 이 값들은 매니페스트(지형/조사 계획)가 정한다. 나머지 public sss_config 키는
-# 시작 시점의 값으로 모든 취득에 명시 전달해, 실행 도중 설정 파일/UI가 바뀌어도
-# 데이터셋 내부에서 센서 모델이 달라지지 않게 한다.
+
+
+
 SCENE_CONTROLLED_KEYS = {
     "platform", "seabed_top_m", "flat_seabed", "altitude_m", "sensor_z_m",
     "track_x0_m", "track_x1_m", "n_legs", "leg_spacing_m", "track_dx_m",
     "survey_heading_deg",
-    # Production geometry is resolved per scene.  In shallow West-Sea tiles a
-    # single fixed range either points beyond the physical beam footprint or
-    # throws away most of the usable swath.  Acoustic/signal settings remain
-    # frozen; only this acquisition geometry follows the sampled altitude.
+
+
+
+
     "range_min_m", "range_max_m", "range_res_m", "depression_deg",
     "range_reference_altitude_m", "noise_level", "speckle_strength",
 }
@@ -115,7 +97,6 @@ def _to_args(values):
 
 
 def _balanced(values, n, seed):
-    """각 cycle마다 한 번씩 쓰되 cycle 순서는 시드로 섞는다."""
     rng = random.Random(seed)
     out = []
     while len(out) < n:
@@ -147,7 +128,6 @@ def _fixed_sensor(snapshot):
 
 
 def _output_selection(spec):
-    """Validate the public output contract and fill stable defaults."""
     raw = spec.get("outputs") or {}
     out = {key: bool(raw.get(key, default)) for key, default in DEFAULT_OUTPUTS.items()}
     if out["bbox_overlay"] and not out["waterfall_png"]:
@@ -158,7 +138,6 @@ def _output_selection(spec):
 
 
 def _deep_update(dst, src):
-    """Recursively apply a JSON profile without sharing mutable sub-dicts."""
     for key, value in (src or {}).items():
         if isinstance(value, dict) and isinstance(dst.get(key), dict):
             _deep_update(dst[key], value)
@@ -168,14 +147,12 @@ def _deep_update(dst, src):
 
 
 def _large_profile(scene_cfg):
-    """Return the opt-in production profile stored beside the scene config."""
     profile = copy.deepcopy(scene_cfg.get("large_dataset_profile") or {})
     profile.pop("_note", None)
     return profile
 
 
 def _number_control(spec, defaults, key, lo, hi):
-    """UI/CLI 공용 대규모 취득 제어값을 검증해 float로 돌려준다."""
     raw = spec.get(key, defaults.get(key))
     try:
         value = float(raw)
@@ -187,7 +164,6 @@ def _number_control(spec, defaults, key, lo, hi):
 
 
 def _scale_int_range(pair, scale):
-    """논리 배치 수/패치 수의 정수 범위를 밀도 배율로 확대한다."""
     lo, hi = [max(0, int(v)) for v in pair]
     if scale == 0.0:
         return [0, 0]
@@ -196,12 +172,6 @@ def _scale_int_range(pair, scale):
 
 
 def _apply_floor_clutter_density(profile, floor_clutter_pct):
-    """암석·자갈/퇴적물의 **스와스 내 배치량**을 UI 비율로 조절한다.
-
-    logical object 수와 Gaussian 바닥 patch 수를 같은 배율로 키워, 단순히 한 군집만
-    과밀하게 만드는 대신 조사 경로 전체에서 덮는 면적도 함께 넓힌다. 작은 자산의
-    physical member 수는 별도로 제곱 확대하지 않는다.
-    """
     scale = float(floor_clutter_pct) / 100.0
     cats = profile.setdefault("object_categories", {})
     patches = profile.setdefault("category_distribution_clusters", {})
@@ -212,19 +182,12 @@ def _apply_floor_clutter_density(profile, floor_clutter_pct):
         if category in patches and "patch_count_range" in patches[category]:
             patches[category]["patch_count_range"] = _scale_int_range(
                 patches[category]["patch_count_range"], scale)
-            # 바닥 피복도 제어는 보이는 스와스 안의 밀도를 뜻한다.
+
             patches[category]["survey_corridor_fraction"] = 1.0
     return scale
 
 
 def _apply_wreck_density(scene_cfg, wreck_pct):
-    """Scale every GT wreck category after the production profile is merged.
-
-    Wreck categories live in the base scene config while the production profile
-    deliberately used to leave their counts untouched.  Applying this after the
-    merge keeps the control independent of floor clutter and also automatically
-    includes a future category carrying the ``wreck`` tag.
-    """
     scale = float(wreck_pct) / 100.0
     for category in (scene_cfg.get("object_categories") or {}).values():
         tags = {str(tag) for tag in category.get("tags", [])}
@@ -234,12 +197,6 @@ def _apply_wreck_density(scene_cfg, wreck_pct):
 
 
 def _apply_wreck_tilt(scene_cfg, wreck_tilt_deg):
-    """Apply the selected roll/pitch range to every large-dataset wreck.
-
-    The actual burial offset is deliberately not calculated here: the engine
-    rotates the mesh first, obtains its rotated world-space height, then applies
-    ``burial_ratio`` to that height when it spawns the actor.
-    """
     tilt = float(wreck_tilt_deg)
     for category in (scene_cfg.get("object_categories") or {}).values():
         tags = {str(tag) for tag in category.get("tags", [])}
@@ -250,7 +207,6 @@ def _apply_wreck_tilt(scene_cfg, wreck_tilt_deg):
 
 
 def _request_stop(signum, _frame):
-    """웹 UI의 SIGTERM을 받아 현재 자식만 정리하고 index를 쓸 기회를 보장한다."""
     global STOP_REQUESTED
     STOP_REQUESTED = True
     proc = ACTIVE_PROCESS
@@ -276,15 +232,6 @@ def _force_track_fraction(scene, fraction, full_length_m=None):
 
 def _survey_range_envelope(scene, altitude_m, range_limit_m,
                            shallow_edge_deg, steep_edge_deg):
-    """Sample the frozen survey corridor and return its farthest visible seabed.
-
-    A tile-wide relief bound is safe but can include a valley nowhere near the
-    selected track, leaving large empty outer bands.  This samples every leg and
-    both sides of the sonar footprint.  A point contributes only when its local
-    depression angle lies inside the vertical beam and its slant range lies inside
-    ``range_limit_m``.  Objects do not need a farther range than their supporting
-    seabed because they protrude toward the sensor.
-    """
     terrain = scene["terrain"]
     survey = scene["survey"]
     ground = sm._terrain_sampler(terrain)
@@ -340,8 +287,8 @@ def build_plan(spec, root):
     if not terrains:
         raise SystemExit("available=true 인 지형이 없습니다.")
 
-    # The production profile is intentionally applied only here.  Manual/UI
-    # single-scene acquisition keeps its own current settings.
+
+
     profile = _large_profile(scene_cfg)
     controls = profile.pop("user_control_defaults", {})
     floor_clutter_pct = _number_control(spec, controls, "floor_clutter_pct", 0.0, 300.0)
@@ -350,8 +297,8 @@ def build_plan(spec, root):
     noise_level = _number_control(spec, controls, "noise_level", 0.0, 4.0)
     speckle_strength = _number_control(spec, controls, "speckle_strength", 0.0, 1.0)
     texture_cv = _number_control(spec, controls, "texture_cv", 0.0, 1.0)
-    # Gamma texture has mean 1 and CV = 1/sqrt(shape).  0 is the explicit
-    # engine convention for disabling the slow, spatially correlated texture.
+
+
     texture_shape = 0.0 if texture_cv == 0.0 else 1.0 / (texture_cv * texture_cv)
     _apply_floor_clutter_density(profile, floor_clutter_pct)
     geometry = profile.pop("sensor_geometry", {})
@@ -412,9 +359,9 @@ def build_plan(spec, root):
         raise SystemExit(
             "대규모 취득 복각은 수직 빔폭/2보다 커야 유한한 빔 도달거리를 계산할 수 있습니다.")
 
-    # Store effective production defaults in the dataset snapshot.  range_max_m
-    # is the safety cap; each manifest/plan row carries the actual altitude-bound
-    # value used by that scene.
+
+
+
     sensor["depression_deg"] = depression
     sensor["noise_level"] = noise_level
     sensor["speckle_strength"] = speckle_strength
@@ -441,13 +388,13 @@ def build_plan(spec, root):
                    "using an unrelated tile-wide valley or exceeding rated range"),
     }
 
-    # 매니페스트 생성에도 고정 센서의 빔폭을 사용하고, track fraction 후보를 명시한다.
+
     plan_cfg["vertical_beam_deg"] = float(sensor["vertical_beam_deg"])
     ss = plan_cfg.setdefault("survey_sampling", {})
     ss["track_length_fraction"] = [0.25, 0.5, 1.0]
     ss["platform"] = platform
-    # The manifest sampler needs a finite provisional range; the final range is
-    # recomputed below after the shallow-water altitude has been sampled.
+
+
     ss["range_max_m"] = [range_cap, range_cap]
     ss["depression_deg"] = [depression, depression]
     ss["range_res_m"] = [sensor["range_res_m"]]
@@ -460,9 +407,9 @@ def build_plan(spec, root):
     scenes, rows = [], []
     for i in range(n):
         scene_seed = seed0 + i
-        # Let scene_manifest see the final track fraction before it places natural
-        # background patches; otherwise a patch can be biased toward a part of the
-        # full track that _force_track_fraction removes immediately afterwards.
+
+
+
         scene_plan_cfg = copy.deepcopy(plan_cfg)
         scene_plan_cfg.setdefault("survey_sampling", {})["track_length_fraction"] = [
             fraction_plan[i]]
@@ -470,16 +417,16 @@ def build_plan(spec, root):
         _force_track_fraction(scene, fraction_plan[i], spec.get("track_full_length_m"))
         sv = scene["survey"]
 
-        # Sensor acoustics are fixed, while range geometry follows the actual
-        # altitude so a 35-degree beam does not pay for unreachable bins/rays.
+
+
         sv["range_res_m"] = sensor["range_res_m"]
         sv["depression_deg"] = depression
-        # 서해 타일은 수심 2.5~10 m라 123.4 m range의 10~20% 고도는 물 밖이다.
-        # acquire_sss.sensor_z가 조용히 수면 아래로 clamp하기 전에, 실제 물기둥 안에서
-        # 가능한 고도를 명시적으로 뽑는다. production profile의 범위 안에서
-        # 맵/seed마다 달라지며, 상한은 수면 아래 0.3 m 안전여유를 침범하지 않는다.
+
+
+
+
         water_depth = abs(float(scene["terrain"]["seabed_top_m"]))
-        max_alt = max(1.0, water_depth - 0.3)       # 센서 최소 잠김 0.3 m와 같은 계약
+        max_alt = max(1.0, water_depth - 0.3)
         arng = random.Random(scene_seed ^ 0x414C5449)
         altitude = round(max(1.0, max_alt * arng.uniform(*altitude_fraction)), 2)
         altitude = min(altitude, max_alt)
@@ -500,16 +447,16 @@ def build_plan(spec, root):
                         (2.0 * float(sensor["bandwidth_khz"]) * 1e3))
         rr_value = float(rr_value)
 
-        # Range must cover relief crossed by this survey, not only the terrain
-        # crest.  Conversely, a tile-wide minimum can lie nowhere near the track
-        # and create empty outer bands.  Sample the actual frozen track/swath.
+
+
+
         search_limit = range_cap / reach_fraction
         envelope, footprint_samples = _survey_range_envelope(
             scene, altitude, search_limit, shallow_edge_deg,
             depression + half_vertical)
         if envelope is None:
-            # Flat/missing-heightfield fallback; this is identical to the old
-            # beam geometry for a locally flat bottom.
+
+
             range_reference_altitude = altitude
             beam_reach = (altitude /
                           math.sin(math.radians(shallow_edge_deg)))
@@ -518,27 +465,27 @@ def build_plan(spec, root):
         else:
             beam_reach, range_reference_altitude, far_depression = envelope
             envelope_source = "sampled_survey_footprint"
-        # 기하적으로는 먼 골짜기 해저가 빔 안에 있을 수 있어도, 낮은 고도에서
-        # 지나치게 긴 range를 유지하면 TVG-off 신호는 거리 손실로 거의 전부
-        # 검정이 된다. 실제 운용처럼 고도/range 비가 최소값보다 작아지지 않게
-        # 상한을 둔다. 예: 비율 0.10이면 고도 2 m -> 최대 20 m.
+
+
+
+
         range_altitude_cap = altitude / min_altitude_to_range
         range_max = min(range_cap, reach_fraction * beam_reach, range_altitude_cap)
         range_max = max(range_min + rr_value, range_max)
         range_max = round(range_max, 1)
-        # range 밖의 더 깊은 골은 이번 ping의 대상이 아니므로, ray 밀도 계산에는
-        # 실제로 저장되는 range 안에서 가능한 간격만 쓴다.
+
+
         range_reference_altitude = min(range_reference_altitude, range_max)
-        # 넓은 swath에서 0.1 m ping 간격은 horizontal beam이 구분할 수 있는
-        # along-track 해상도보다 과도하게 촘촘하다. R·sin(beamwidth)의 80% 간격까지
-        # 늘려 중복 raycast만 줄이며, 근거리에서는 기존 최소 0.1 m를 유지한다.
+
+
+
         along_resolution = range_max * math.sin(math.radians(
             float(sensor["horizontal_beam_deg"])))
         track_dx = min(track_dx_max, max(
             track_dx_min, track_dx_resolution_fraction * along_resolution))
         track_dx = round(track_dx, 3)
-        # Seed만 바꾸면 단지 난수 realization만 바뀐다. 여기서는 scene마다
-        # 수신기 noise power와 diffuse speckle fraction 자체도 작은 범위에서 바꾼다.
+
+
         vrng = random.Random(scene_seed ^ 0x4E4F4953)
         scene_noise_level = round(noise_level * vrng.uniform(*noise_multiplier), 4)
         scene_speckle_strength = round(min(1.0, max(
@@ -564,8 +511,8 @@ def build_plan(spec, root):
             f"고도/거리 하한 {min_altitude_to_range:.0%} "
             f"(고도 기반 상한 {range_altitude_cap:.1f} m)를 적용함.")
 
-        # elev_ray_max는 센서 물리가 아니라 ray 근사 오차를 막는 계산 예산이다.
-        # 얕은 고도에서도 range_res 간격을 지키는 데 필요한 정확한 수를 미리 계산한다.
+
+
         rr = rr_value
         rmax = range_max
         th_min = math.asin(min(max(range_reference_altitude / rmax, 1e-6), 1.0))
@@ -597,8 +544,8 @@ def build_plan(spec, root):
             "clusters": len(scene.get("object_clusters", [])),
             "elev_rays_required": elev_required,
             "elev_ray_max_execution": elev_budget,
-            # 엔진/NumPy 양쪽에서 안전한 양의 int32 범위. 물리 파라미터는 같고
-            # realization만 서로 다르며, dataset seed로 완전히 재현된다.
+
+
             "speckle_seed": (seed0 * 1009 + i * 2 + 1) % 2147483646 + 1,
             "noise_seed": (seed0 * 1009 + i * 2 + 2) % 2147483646 + 1,
         })
@@ -609,10 +556,10 @@ def build_plan(spec, root):
                                            max(desired_az, 1e-8))) + 1)
         az_required = min(az_required, int(sensor.get("azimuth_ray_max", 65)))
         rows[-1]["azimuth_rays_required"] = az_required
-        # The reference smoke used the 123.4 m profile (13 azimuth samples).
-        # The cap is only a guard; the engine casts ``elev_required`` rays when
-        # the requirement is below that cap.  Using the cap here used to grossly
-        # overestimate the new short-range profile.
+
+
+
+
         ray_scale = (elev_required * az_required) / (REFERENCE_ELEV_RAYS * 13.0)
         platform_scale = 1.2 if platform == "asv" else 1.0
         rows[-1]["estimated_pings"] = pings
@@ -698,7 +645,6 @@ def _stream_command(cmd, log):
 
 
 def _artifact_counts(sample_dir):
-    """Count public artifacts used to decide whether a scene really completed."""
     return {
         "waterfall_png": len(list((sample_dir / "sss/waterfall").glob("*.png"))),
         "true_aspect_png": len(list((sample_dir / "sss/true_aspect").glob("*.png"))),
@@ -739,9 +685,9 @@ def _run_one(root, manifest, row, fixed, platform, outputs):
         "save_bbox_overlay": outputs["bbox_overlay"],
         "gt_labels": outputs["mask"] or outputs["bbox"] or outputs["bbox_overlay"],
     })
-    # New production plans record altitude-bound geometry explicitly.  Keep
-    # resume compatible with pre-profile datasets whose rows lack these fields;
-    # their manifest still carries the original survey geometry.
+
+
+
     for key in ("depression_deg", "range_min_m", "range_max_m",
                 "range_reference_altitude_m", "track_dx_m", "noise_level",
                 "speckle_strength"):
@@ -794,7 +740,6 @@ def _run_one(root, manifest, row, fixed, platform, outputs):
 
 
 def _emit_estimate(rows, results, started):
-    """계획 추정치를 완료 씬 실측으로 계속 보정해 종료 시각을 출력한다."""
     attempted = {int(r["index"]) for r in results}
     est_done = sum(float(r.get("estimated_seconds", 0)) for r in rows
                    if int(r["index"]) in attempted)
@@ -822,7 +767,6 @@ def _directory_size(path):
 
 
 def _export_zip(root):
-    """Create a portable dataset bundle beside the dataset directory."""
     size = _directory_size(root)
     free = shutil.disk_usage(root.parent).free
     if free < max(size, 1) * 1.05:
