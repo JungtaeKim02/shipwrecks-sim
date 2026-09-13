@@ -1,7 +1,7 @@
 {
   "format": "sss-dataset-v2",
   "status": "complete",
-  "root": "/home/artemis-1/holoocean_ws/examples/sample_dataset_long2",
+  "root": "/home/artemis-1/holoocean_ws/examples/sample_dataset_v020",
   "n": 1,
   "completed": 1,
   "failed": 0,
@@ -44,7 +44,6 @@
       "beam_reach_m": 72.9,
       "range_altitude_cap_m": 331.6,
       "track_dx_m": 0.2,
-      "display_variant_dynamic_range_db": 62.66,
       "range_envelope_source": "sampled_survey_footprint",
       "range_footprint_samples": 11616,
       "objects": 1761,
@@ -73,7 +72,7 @@
         "bbox_overlay": 5,
         "scene_preview": 1
       },
-      "elapsed_s": 92.0,
+      "elapsed_s": 94.2,
       "log": "samples/scene_000000/run.log",
       "interrupted": false
     }

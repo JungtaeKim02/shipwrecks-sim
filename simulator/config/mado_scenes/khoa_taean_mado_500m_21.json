@@ -1,0 +1,61 @@
+{
+  "scene_name": "khoa_taean_mado_500m_21",
+  "_comment": "KHOA/data.go.kr Taean-Mado measured macro bathymetry tile. The 5 m mesh is bilinear subdivision of a ~150 m observation field, not 5 m measurement resolution and not procedural micro-relief.",
+  "terrain_data_source": "khoa_taean_mado_500m_21_terrain.csv",
+  "terrain_provenance": {
+    "source_heightfield": "/home/artemis-1/HoloOcean-project/03_data/khoa_bathymetry/taean_mado_excavation_reference_20260719/khoa_bathymetry_smooth_181x181_heightfield.csv",
+    "source_metadata": "/home/artemis-1/HoloOcean-project/03_data/khoa_bathymetry/taean_mado_excavation_reference_20260719/khoa_bathymetry_metadata.json",
+    "source_window_center_m": [
+      0.0,
+      450.0
+    ],
+    "source_window_size_m": [
+      500.0,
+      500.0
+    ],
+    "source_observation_spacing_note": "approximately 150 m",
+    "installed_mesh_cell_m": 5.0,
+    "interpolation": "bilinear crop of documented smoothed KHOA field",
+    "procedural_micro_relief": false
+  },
+  "baseline_material": {
+    "comment": "Very Fine Sand — KIGAM Taean-west + APL-UW TR9407",
+    "density_kgm3": 1298.0,
+    "sound_speed_mps": 1564.0
+  },
+  "soft_mud_baseline_material": {
+    "comment": "Very Fine Sand (same as baseline; no unsupported facies map)",
+    "density_kgm3": 1298.0,
+    "sound_speed_mps": 1564.0
+  },
+  "active_window": {
+    "comment": "Uniform measured-material tile; no artificial central blend",
+    "x_falloff_start_m": 500.0,
+    "x_falloff_end_m": 501.0,
+    "y_falloff_start_m": 500.0,
+    "y_falloff_end_m": 501.0
+  },
+  "blend_strength": 0.0,
+  "texture_noise": {
+    "fine_cell_size_m": 3.0,
+    "coarse_cell_size_m": 11.0,
+    "coarse_freq_scale": 0.35,
+    "fine_weight": 0.6,
+    "coarse_weight": 0.4,
+    "amp_base": 0.0,
+    "amp_zone_weight_scale": 0.0,
+    "near_nadir_fade_start_m": 2.0,
+    "near_nadir_fade_end_m": 12.0
+  },
+  "domain_warp_cell_size_m": 7.0,
+  "domain_warp_fraction_of_radius": 0.0,
+  "facies_zones": [],
+  "anchor_stones": [],
+  "reef_edge_cues": [],
+  "wreck_spawns": [],
+  "depth_summary_m": {
+    "min": 7.696095,
+    "max": 10.472118,
+    "relief": 2.776023
+  }
+}

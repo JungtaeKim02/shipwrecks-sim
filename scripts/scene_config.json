@@ -907,10 +907,6 @@
         -0.12,
         0.12
       ],
-      "display_variant_dynamic_range_db": [
-        45.0,
-        65.0
-      ],
       "_note": "각 scene에서 base noise_level에 0.85~1.15 배를 곱하고, base speckle_strength에는 -0.12~+0.12를 더한 뒤 0~1로 clamp한다. 또 canonical 50 dB PNG와 별개로 45~65 dB clipping PNG를 하나 추가한다. 난수 시드 변화와 별개로 취득·표시 조건 자체의 작은 다양성을 준다."
     },
     "sensor_geometry": {

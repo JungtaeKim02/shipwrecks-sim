@@ -42138,7 +42138,6 @@
     "track_dx_m": 0.2,
     "noise_level": 1.0693,
     "speckle_strength": 0.9041,
-    "display_variant_dynamic_range_db": 62.66,
     "range_reference_altitude_m": 16.58,
     "range_envelope_source": "sampled_survey_footprint",
     "range_footprint_samples": 11616,

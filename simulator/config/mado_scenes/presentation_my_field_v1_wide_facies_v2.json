@@ -1,0 +1,116 @@
+{
+  "scene_name": "presentation_my_field_v1_wide_facies_v2",
+  "_comment": "Presentation-only my_field_v1 clone with wide fine-sand and gravel facies.",
+  "_generator_params": {
+    "x0_m": -150,
+    "x1_m": 150,
+    "y0_m": -120,
+    "y1_m": 120,
+    "cell_m": 1,
+    "base_depth_m": 18,
+    "slope_deg": 0.2,
+    "slope_dir_deg": 0,
+    "sand_wave_amp_m": 0,
+    "sand_wave_len_m": 60,
+    "sand_wave_dir_deg": 0,
+    "ridge_amp_m": 0,
+    "ridge_len_x_m": 280,
+    "ridge_len_y_m": 380,
+    "bowl_amp_m": 4.5,
+    "bowl_radius_m": 90,
+    "bowl_cx_m": 0,
+    "bowl_cy_m": 0,
+    "channel_depth_m": 7.5,
+    "channel_width_m": 45,
+    "channel_dir_deg": 25,
+    "channel_offset_m": 0,
+    "roughness_amp_m": 0.25,
+    "roughness_cell_m": 8,
+    "roughness_octaves": 4,
+    "seed": 0,
+    "baseline_material": "very_fine_silt",
+    "soft_material": "very_fine_silt",
+    "facies_zones": [
+      {
+        "cx": -42.0,
+        "cy": 4.0,
+        "rx": 37.0,
+        "ry": 108.0,
+        "yaw": -18.0,
+        "material": "fine_sand",
+        "evidence": "Presentation control: elongated fine-sand facies"
+      },
+      {
+        "cx": 56.0,
+        "cy": -8.0,
+        "rx": 31.0,
+        "ry": 102.0,
+        "yaw": 14.0,
+        "material": "gravel",
+        "evidence": "Presentation control: elongated gravel facies"
+      }
+    ],
+    "blend_strength": 1.0
+  },
+  "terrain_data_source": "presentation_my_field_v1_wide_facies_v2_terrain.csv",
+  "baseline_material": {
+    "comment": "Very Fine Silt (연니)",
+    "density_kgm3": 1175.0,
+    "sound_speed_mps": 1456.0
+  },
+  "soft_mud_baseline_material": {
+    "comment": "Very Fine Silt (연니)",
+    "density_kgm3": 1175.0,
+    "sound_speed_mps": 1456.0
+  },
+  "active_window": {
+    "comment": "중앙부를 soft 쪽으로 기울이는 falloff",
+    "x_falloff_start_m": 69.0,
+    "x_falloff_end_m": 111.0,
+    "y_falloff_start_m": 60.0,
+    "y_falloff_end_m": 96.0
+  },
+  "blend_strength": 1.0,
+  "texture_noise": {
+    "fine_cell_size_m": 3.0,
+    "coarse_cell_size_m": 11.0,
+    "coarse_freq_scale": 0.35,
+    "fine_weight": 0.6,
+    "coarse_weight": 0.4,
+    "amp_base": 0.05,
+    "amp_zone_weight_scale": 0.06,
+    "near_nadir_fade_start_m": 2.0,
+    "near_nadir_fade_end_m": 12.0
+  },
+  "domain_warp_cell_size_m": 7.0,
+  "domain_warp_fraction_of_radius": 0.22,
+  "facies_zones": [
+    {
+      "evidence": "Presentation control: elongated fine-sand facies",
+      "center_x_m": -42.0,
+      "center_y_m": 4.0,
+      "yaw_deg": -18.0,
+      "radius_x_m": 37.0,
+      "radius_y_m": 108.0,
+      "target_material": {
+        "density_kgm3": 1298.0,
+        "sound_speed_mps": 1564.0
+      }
+    },
+    {
+      "evidence": "Presentation control: elongated gravel facies",
+      "center_x_m": 56.0,
+      "center_y_m": -8.0,
+      "yaw_deg": 14.0,
+      "radius_x_m": 31.0,
+      "radius_y_m": 102.0,
+      "target_material": {
+        "density_kgm3": 2203.0,
+        "sound_speed_mps": 1812.0
+      }
+    }
+  ],
+  "anchor_stones": [],
+  "reef_edge_cues": [],
+  "wreck_spawns": []
+}

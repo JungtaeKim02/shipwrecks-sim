@@ -1,5 +1,4 @@
-# Clone and patch HoloOcean first; see README.md.
--e ./holoocean/client
+# setup_simulator.sh installs the patched local HoloOcean client separately.
 
 # Tested with Python 3.10. Keep NumPy 1.x for the HoloOcean 2.4.0 client.
 numpy>=1.21.5,<2

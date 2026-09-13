@@ -48,9 +48,9 @@ __pycache__/
 !/scripts/sss_common.py
 !/scripts/sss_config.json
 
-# Only the client compatibility patch is required by release users
+# The single source patch is applied by setup_simulator.sh
 /patches/*
-!/patches/holoocean-client-2.4.0.diff
+!/patches/shipwrecks-sim-holoocean-2.4.0.patch
 
 # Editor/assistant state
 /.claude/

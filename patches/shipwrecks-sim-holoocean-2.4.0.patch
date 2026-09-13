@@ -1,0 +1,4403 @@
+diff --git a/client/src/holoocean/sensors.py b/client/src/holoocean/sensors.py
+index c86560f5..be75de52 100644
+--- a/client/src/holoocean/sensors.py
++++ b/client/src/holoocean/sensors.py
+@@ -816,10 +816,19 @@ class SidescanSonar(HoloOceanSensor):
+     - ``RangeMax``: Maximum range visible in meters, defaults to 35.
+     - ``RangeBins``/``RangeRes``: Number of range bins of resulting image, or resolution (length in meters) of each bin. Set one or the other. Defaults to 0.05 m.
+ 
+-    **Noise Configuration**
+-
+-    - ``AddSigma``/``AddCov``: Additive noise std/covariance from a Rayleigh distribution. Needs to be a float. Set one or the other. Defaults to 0, or off.
+-    - ``MultSigma``/``MultCov``: Multiplication noise std/covariance from a normal distribution. Needs to be a float. Set one or the other. Defaults to 0, or off.
++    **Fine-scattering Configuration (``complex-power-v2``)**
++
++    - ``SpeckleDistribution``: ``"complex_gaussian"`` (default) or ``"off"``.
++      The detected power is exponential when the field is fully diffuse.
++    - ``SpeckleStrength``: Diffuse power fraction in ``[0, 1]``. ``1`` gives
++      fully-developed single-look speckle; ``0`` gives deterministic power.
++    - ``SpeckleSeed``: Non-zero values make speckle reproducible; ``0`` uses a
++      fresh random seed.
++    - ``AddSigma``/``AddCov`` and ``MultSigma``/``MultCov`` are accepted only
++      for compatibility with older scenarios and are ignored by this sensor.
++      Receiver noise must be combined with the received complex signal after
++      propagation loss (the project acquisition pipeline does this in
++      ``scripts/sss_common.py``).
+ 
+     **Advanced Configuration**
+ 
+@@ -916,6 +925,7 @@ class ImagingSonar(HoloOceanSensor):
+ 
+     - ``AddSigma``/``AddCov``: Additive noise std/covariance from a Rayleigh distribution. Needs to be a float. Set one or the other. Defaults to 0, or off.
+     - ``MultSigma``/``MultCov``: Multiplication noise std/covariance from a normal distribution. Needs to be a float. Set one or the other. Defaults to 0, or off.
++
+     - ``MultiPath``: Whether to compute multipath or not. Defaults to False.
+     - ``ClusterSize``: Size of cluster when multipath is enabled. Defaults to 5.
+     - ``ScaleNoise``: Whether to scale the returned intensities or not. Defaults to False.
+@@ -1410,8 +1420,20 @@ class RaycastSidescanSonar(HoloOceanSensor):
+ 
+     **Noise Configuration**
+ 
+-    - ``AddSigma``/``AddCov``: Additive noise std/covariance from a Rayleigh distribution. Needs to be a float. Set one or the other. Defaults to 0, or off.
+-    - ``MultSigma``/``MultCov``: Multiplication noise std/covariance from a normal distribution. Needs to be a float. Set one or the other. Defaults to 0, or off.
++    - ``AddSigma``/``AddCov`` and ``MultSigma``/``MultCov`` are accepted only for configuration compatibility. The engine no longer adds positive Rayleigh noise to detected power; receiver noise belongs after propagation and matched filtering in the acquisition pipeline.
++
++    **Coherent Signal Configuration**
++
++    - ``SignalModel``: ``"coherent"`` emits pre-propagation I/Q channels; ``"intensity"`` keeps the detected-power compatibility channel. Defaults to ``"coherent"``.
++    - ``FrequencyKhz``: Carrier frequency used for two-way path phase. Defaults to 520 kHz.
++    - ``SpeckleDistribution``: ``"complex_gaussian"`` enables coherent diffuse scattering; ``"off"`` disables it. ``"exponential"`` is the fully diffuse detected-power alias. The old ``"rayleigh"`` spelling is deprecated.
++    - ``SpeckleStrength``: Diffuse power fraction in the coherent/Rician mixture, in ``[0,1]``. Defaults to 1.
++    - ``SpeckleSeed``: Shared world-field seed. Zero chooses a new seed. Defaults to zero.
++    - ``ScatterCorrelationLengthM``: Correlation length of the world-anchored complex rough-surface field. Defaults to 0.05 m.
++    - ``TextureShape``: Shape of an optional unit-mean Gamma texture field. Zero disables compound texture. Defaults to zero.
++    - ``TextureCorrelationLengthM``: Correlation length of the Gamma texture. Defaults to 1 m.
++    - ``BeamPattern``: Applies two-dimensional transmit/receive directivity using both configured beamwidths. Defaults to False.
++    - ``MultiPath``: Enables the optional second-bounce ray path. Defaults to False.
+ 
+     **Advanced Configuration**
+ 
+@@ -1491,6 +1513,14 @@ class RaycastSidescanSonar(HoloOceanSensor):
+             _ = self.config.setdefault("AddSigma", 0)
+         if "MultCov" not in self.config:
+             _ = self.config.setdefault("MultSigma", 0)
++        self.config.setdefault("SpeckleDistribution", "complex_gaussian")
++        self.config.setdefault("SpeckleStrength", 1.0)
++        self.config.setdefault("SpeckleSeed", 0)
++        self.config.setdefault("SignalModel", "coherent")
++        self.config.setdefault("FrequencyKhz", 520.0)
++        self.config.setdefault("ScatterCorrelationLengthM", 0.05)
++        self.config.setdefault("TextureShape", 0.0)
++        self.config.setdefault("TextureCorrelationLengthM", 1.0)
+         # Advanced Config
+         if "AzimuthRayRes" not in self.config:
+             # For the defaults here we are trying to ensure that every range bin will have at least one ray, ideally two, using the geometry of a sonar that is facing directly down towards a flat seafloor
+@@ -1556,10 +1586,18 @@ class RaycastSidescanSonar(HoloOceanSensor):
+         print("Elevation Rays", elev_raycount)
+         # TODO: Check for invalid numbers for all inputs (like some things cant be < 0, or even <= 0, or they may have limitations becuase of other parameters (rayresolution can't exceed aperture) and so on)
+ 
+-        # Set the shape for the range array (range_bins*2 because we have the port and starboard sides -- in this simuation we use one sensor, but usually for sidescan there are two, one mounted to the port side and the other to the starboard)
++        # Every engine channel retains the mirrored dual-half layout (2*range_bins).
++        # Coherent mode emits I and Q; intensity mode emits one power channel.
++        # SemanticLabels appends one more mirrored channel.
++        signal_model = str(self.config.get("SignalModel", "coherent")).lower()
++        measurement_channels = 2 if signal_model in (
++            "coherent", "coherent_field", "coherent-field-v3", "coherent-cell-v3.1"
++        ) else 1
+         self.shape = [
+             range_bins
+-        ]  # [range_bins*2] was what it was set to before when 1 sensor was both lobes.
++            * 2
++            * (measurement_channels + (1 if self.config.get("SemanticLabels", False) else 0))
++        ]
+ 
+         super(RaycastSidescanSonar, self).__init__(
+             client, agent_name, agent_type, name=name, config=config
+diff --git a/engine/Content/Config/config.json b/engine/Content/Config/config.json
+index 390c1f75..844d94a4 100644
+--- a/engine/Content/Config/config.json
++++ b/engine/Content/Config/config.json
+@@ -7,8 +7,8 @@
+         {
+             "name" : "ExampleLevel",
+             "pre_start_steps": 20,
+-            "env_min" : [-5.0, -5.0, -1.0],
+-            "env_max" : [5.0, 5.0, 5.0]
++            "env_min" : [-45.0, -45.0, -25.0],
++            "env_max" : [45.0, 45.0, 5.0]
+         },
+         {
+             "name" : "TestWorld",
+diff --git a/engine/Content/Config/materials.csv b/engine/Content/Config/materials.csv
+index b6a0284d..d3a7f5bd 100644
+--- a/engine/Content/Config/materials.csv
++++ b/engine/Content/Config/materials.csv
+@@ -17,4 +17,23 @@ MI_Concrete_3, 2400, 3700
+ M_Ground_Gravel, 6000, 1920
+ M_Pier_Fence_01, 1000, 5000
+ M_Pier_Wood_01, 1000, 5000
+-color_d6775eff, 10000, 10000
+\ No newline at end of file
++BasicShapeMaterial, 1298, 1564
++WorldGridMaterial, 1298, 1564
++color_d6775eff, 1298, 1564
++M_PreviewOceanWater, 1019, 1516
++M_PreviewOceanWaters, 1019, 1516
++M_Brown_Sand, 1298, 1564
++M_CobbleStone_Rough, 2600, 3800
++T_SandDunes_N_fromOceanFloor, 1298, 1564
++ShipwreckProjectSeabed, 1298, 1564
++ShipwreckProjectWreck, 1100, 1983
++ShipwreckProjectClutter, 3000, 5000
++ShipwreckProjectSoftMud, 1175, 1456
++ShipwreckProjectShellMud, 1177, 1463
++ShipwreckProjectHardMud, 1176, 1459
++ShipwreckProjectHardMudGravel, 2203, 1812
++ShipwreckProjectAnchorStone, 2560, 3700
++ShipwreckProjectReefRock, 2560, 3700
++M_Metal_Steel, 7700, 5900
++M_Wood_Pine, 650, 3300
++M_Basic_Wall, 2400, 3700
+diff --git a/engine/Holodeck.uproject b/engine/Holodeck.uproject
+index 079e14cf..f8798743 100644
+--- a/engine/Holodeck.uproject
++++ b/engine/Holodeck.uproject
+@@ -1,39 +1,43 @@
+ {
+-	"FileVersion": 3,
+-	"EngineAssociation": "5.3",
+-	"Category": "",
+-	"Description": "",
+-	"Modules": [
+-		{
+-			"Name": "Holodeck",
+-			"Type": "Runtime",
+-			"LoadingPhase": "Default",
+-			"AdditionalDependencies": [
+-				"Engine"
+-			]
+-		},
+-		{
+-			"Name": "SonarHistogramModule",
+-			"Type": "Runtime",
+-			"LoadingPhase": "PostConfigInit"
+-		}
+-	],
+-	"Plugins": [
+-		{
+-			"Name": "RapidJson",
+-			"Enabled": false
+-		},
+-		{
+-			"Name": "CascadeToNiagaraConverter",
+-			"Enabled": true
+-		},
+-		{
+-			"Name": "ModelingToolsEditorMode",
+-			"Enabled": true
+-		}
+-	],
+-	"TargetPlatforms": [
+-		"Linux",
+-		"Windows"
+-	]
+-}
+\ No newline at end of file
++    "FileVersion": 3,
++    "EngineAssociation": "5.3",
++    "Category": "",
++    "Description": "",
++    "Modules": [
++        {
++            "Name": "Holodeck",
++            "Type": "Runtime",
++            "LoadingPhase": "Default",
++            "AdditionalDependencies": [
++                "Engine"
++            ]
++        },
++        {
++            "Name": "SonarHistogramModule",
++            "Type": "Runtime",
++            "LoadingPhase": "PostConfigInit"
++        }
++    ],
++    "Plugins": [
++        {
++            "Name": "RapidJson",
++            "Enabled": false
++        },
++        {
++            "Name": "CascadeToNiagaraConverter",
++            "Enabled": true
++        },
++        {
++            "Name": "ModelingToolsEditorMode",
++            "Enabled": true
++        },
++        {
++            "Name": "ProceduralMeshComponent",
++            "Enabled": true
++        }
++    ],
++    "TargetPlatforms": [
++        "Linux",
++        "Windows"
++    ]
++}
+diff --git a/engine/Source/Holodeck/Agents/Private/SurfaceVesselControlPD.cpp b/engine/Source/Holodeck/Agents/Private/SurfaceVesselControlPD.cpp
+index e559f8e5..6ff733ba 100644
+--- a/engine/Source/Holodeck/Agents/Private/SurfaceVesselControlPD.cpp
++++ b/engine/Source/Holodeck/Agents/Private/SurfaceVesselControlPD.cpp
+@@ -58,7 +58,10 @@ void USurfaceVesselControlPD::Execute(
+ 		DesiredYaw, Yaw, YawRate, DeltaSeconds, true, true);
+ 	float f = PositionController.ComputePIDDirect(
+ 		FVector::Dist2D(DesiredPosition, Position), 0, 0, DeltaSeconds);
+-	UE_LOG(LogHolodeck, Warning, TEXT("f %f, t %f"), f, tau);
++	// upstream 이 남긴 디버그 로그. **매 tick** Warning 을 찍어 ASV 취득이 로그 I/O 에
++	// 묶여 극단적으로 느려진다(20 ping 취득이 3초 -> 500초 초과). Verbose 로 내려서
++	// 기본 실행에는 나오지 않게 한다. 필요하면 -LogCmds="LogHolodeck Verbose" 로 켠다.
++	UE_LOG(LogHolodeck, Verbose, TEXT("f %f, t %f"), f, tau);
+ 
+ 	// Clamp
+ 	tau = FMath::Clamp(tau, -SV_CONTROL_MAX_TORQUE, SV_CONTROL_MAX_TORQUE);
+diff --git a/engine/Source/Holodeck/ClientCommands/Private/ClearSceneObjectsCommand.cpp b/engine/Source/Holodeck/ClientCommands/Private/ClearSceneObjectsCommand.cpp
+new file mode 100644
+index 00000000..780665df
+--- /dev/null
++++ b/engine/Source/Holodeck/ClientCommands/Private/ClearSceneObjectsCommand.cpp
+@@ -0,0 +1,35 @@
++#include "ClearSceneObjectsCommand.h"
++#include "Holodeck.h"
++
++#include "SpawnSceneObjectCommand.h"
++#include "EngineUtils.h"
++#include "Engine/StaticMeshActor.h"
++
++void UClearSceneObjectsCommand::Execute() {
++	UE_LOG(LogHolodeck, Log, TEXT("ClearSceneObjectsCommand::Execute"));
++
++	UWorld* World = Target->GetWorld();
++	if (World == nullptr) {
++		UE_LOG(LogHolodeck, Error, TEXT("ClearSceneObjectsCommand: no world."));
++		return;
++	}
++
++	const FName			 Tag = FName(USpawnSceneObjectCommand::SceneObjectTag());
++	TArray<AActor*>		 ToDestroy;
++
++	for (TActorIterator<AStaticMeshActor> It(World); It; ++It) {
++		if (It->ActorHasTag(Tag)) {
++			ToDestroy.Add(*It);
++		}
++	}
++
++	for (AActor* Actor : ToDestroy) {
++		Actor->Destroy();
++	}
++
++	UE_LOG(
++		LogHolodeck,
++		Log,
++		TEXT("ClearSceneObjectsCommand: destroyed %d scene object(s)."),
++		ToDestroy.Num());
++}
+diff --git a/engine/Source/Holodeck/ClientCommands/Private/CommandFactory.cpp b/engine/Source/Holodeck/ClientCommands/Private/CommandFactory.cpp
+index aa7e65b6..0f639c67 100644
+--- a/engine/Source/Holodeck/ClientCommands/Private/CommandFactory.cpp
++++ b/engine/Source/Holodeck/ClientCommands/Private/CommandFactory.cpp
+@@ -40,6 +40,8 @@ UCommand* UCommandFactory::MakeCommand(
+ 		{ "WaterFog", &CreateInstance<UWaterFogCommand> },
+ 		{ "ChangeBuoyancy", &CreateInstance<UChangeBuoyancyCommand> },
+ 		{ "ChangeWorldCollisions", &CreateInstance<UChangeWorldCollisions> },
++		{ "SpawnSceneObject", &CreateInstance<USpawnSceneObjectCommand> },
++		{ "ClearSceneObjects", &CreateInstance<UClearSceneObjectsCommand> },
+ 	};
+ 
+ 	UCommand* (*CreateCommandFunction)() = CommandMap[Name];
+diff --git a/engine/Source/Holodeck/ClientCommands/Private/SpawnSceneObjectCommand.cpp b/engine/Source/Holodeck/ClientCommands/Private/SpawnSceneObjectCommand.cpp
+new file mode 100644
+index 00000000..bf9476cb
+--- /dev/null
++++ b/engine/Source/Holodeck/ClientCommands/Private/SpawnSceneObjectCommand.cpp
+@@ -0,0 +1,136 @@
++#include "SpawnSceneObjectCommand.h"
++#include "Holodeck.h"
++
++#include "Engine/StaticMesh.h"
++#include "Engine/StaticMeshActor.h"
++#include "Components/StaticMeshComponent.h"
++
++void USpawnSceneObjectCommand::Execute() {
++	UE_LOG(LogHolodeck, Log, TEXT("SpawnSceneObjectCommand::Execute"));
++
++	if (NumberParams.size() < 10 || StringParams.size() < 1) {
++		UE_LOG(
++			LogHolodeck,
++			Error,
++			TEXT("SpawnSceneObjectCommand expects 10 number parameters and at "
++				 "least 1 string parameter (mesh path). Command not executed."));
++		return;
++	}
++
++	UWorld* World = Target->GetWorld();
++	if (World == nullptr) {
++		UE_LOG(LogHolodeck, Error, TEXT("SpawnSceneObjectCommand: no world."));
++		return;
++	}
++
++	const FString MeshPath = FString(StringParams[0].c_str());
++	UStaticMesh*  Mesh = LoadObject<UStaticMesh>(nullptr, *MeshPath);
++	if (Mesh == nullptr) {
++		UE_LOG(
++			LogHolodeck,
++			Error,
++			TEXT("SpawnSceneObjectCommand: could not load static mesh '%s'. Is it "
++				 "cooked into the package? Command not executed."),
++			*MeshPath);
++		return;
++	}
++
++	// Client frame (meters, x forward / y left / z up) -> UE frame (cm, left handed).
++	FVector Location = FVector(NumberParams[0], NumberParams[1], NumberParams[2]);
++	Location = ConvertLinearVector(Location, ClientToUE);
++
++	// 회전은 **FRotator 오버로드**로 변환해야 한다.
++	//
++	// FVector 오버로드(Conversion.cpp:113)는 선형 단위 배율 UEUnitsPerMeter(=100) 을
++	// 성분에 곱한다. 각속도/위치용이라 그렇게 되어 있는데, 여기에 각도를 넣으면
++	// 100 배가 된다: yaw 45 -> -4500 deg (= 180), yaw 90 -> -9000 deg (= 0).
++	// 실제로 yaw 0/45/90 으로 스폰한 세 척이 전부 같은 방향으로 나왔다(2026-08-04).
++	// FRotator 오버로드(같은 파일 133 행)는 배율 없이 Roll/Yaw 부호만 뒤집는다.
++	FRotator Rotation(NumberParams[4], NumberParams[5], NumberParams[3]);  // Pitch, Yaw, Roll
++	Rotation = ConvertAngularVector(Rotation, ClientToUE);
++
++	FActorSpawnParameters SpawnParams;
++	SpawnParams.SpawnCollisionHandlingOverride =
++		ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
++
++	AStaticMeshActor* Actor =
++		World->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Location, Rotation, SpawnParams);
++	if (Actor == nullptr) {
++		UE_LOG(LogHolodeck, Error, TEXT("SpawnSceneObjectCommand: spawn failed."));
++		return;
++	}
++
++	// Mobility must be Movable. An actor spawned after level load cannot be Static:
++	// UE will not (re)create its physics state, which leaves the mesh visible but with
++	// no collision — the sonar's line traces pass straight through it. Mobility does
++	// not affect trace channels, so Movable costs us nothing here.
++	UStaticMeshComponent* MeshComponent = Actor->GetStaticMeshComponent();
++	MeshComponent->SetMobility(EComponentMobility::Movable);
++	MeshComponent->SetStaticMesh(Mesh);
++	MeshComponent->SetWorldScale3D(
++		FVector(NumberParams[6], NumberParams[7], NumberParams[8]));
++
++	// Be explicit about collision rather than relying on the spawn default: the sonar
++	// traces ECC_GameTraceChannel3/4, whose default response is Block, but only for
++	// components that actually have query collision enabled.
++	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
++	MeshComponent->SetCollisionProfileName(TEXT("BlockAll"));
++	MeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
++
++	// Sink the mesh by a fraction of its own height. Only the engine knows the bounds,
++	// so the client passes a ratio and we resolve it to a world offset here.
++	const float BurialRatio = FMath::Clamp(NumberParams[9], 0.0f, 1.0f);
++	if (BurialRatio > 0.0f) {
++		// "제 높이의 몇 %" 는 **세워진 뒤의 수직 범위** 여야 한다.
++		// 예전에는 메시 로컬 Z 범위만 썼는데, 자산마다 로컬 Z 가 가리키는 치수가
++		// 달라(최대변 대비 0.21 ~ 1.00 로 실측됨) 같은 비율을 줘도 어떤 난파선은
++		// 거의 안 묻히고 어떤 것은 통째로 들어갔다(2026-08-04).
++		// 회전을 적용한 월드 AABB 의 Z 범위를 쓰면 자산·자세와 무관하게 일관된다.
++		const FVector Ext = Mesh->GetBounds().BoxExtent * FMath::Abs(NumberParams[8]);
++		const FMatrix Rot = FRotationMatrix(Rotation);
++		const float HeightCm = 2.0f * (FMath::Abs(Rot.M[0][2]) * Ext.X
++									 + FMath::Abs(Rot.M[1][2]) * Ext.Y
++									 + FMath::Abs(Rot.M[2][2]) * Ext.Z);
++		Actor->SetActorLocation(Location - FVector(0.0f, 0.0f, BurialRatio * HeightCm));
++	}
++
++	// The asset itself must be imported with CTF_USE_COMPLEX_AS_SIMPLE, because the
++	// sonar traces with bTraceComplex = false and needs a valid FaceIndex to resolve
++	// the material. We warn loudly here rather than fail silently with a white blob.
++	if (Mesh->GetBodySetup() != nullptr
++		&& Mesh->GetBodySetup()->CollisionTraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple) {
++		UE_LOG(
++			LogHolodeck,
++			Warning,
++			TEXT("SpawnSceneObjectCommand: mesh '%s' is NOT set to "
++				 "CTF_USE_COMPLEX_AS_SIMPLE. Sonar will hit its simple (box) "
++				 "collision and material lookup will fail -> object renders "
++				 "uniformly bright. Re-import it with the SSS import commandlet."),
++			*MeshPath);
++	}
++
++	Actor->Tags.Add(FName(SceneObjectTag()));
++	for (size_t i = 1; i < StringParams.size(); ++i) {
++		const FString Tag = FString(StringParams[i].c_str());
++		if (!Tag.IsEmpty()) {
++			Actor->Tags.Add(FName(*Tag));
++		}
++	}
++
++	// Diagnostics: a scene object that is present but not detected by the sonar is the
++	// hard failure mode here (no error, just an empty waterfall), so log enough state
++	// to tell "not spawned" from "spawned but not collidable" from "spawned elsewhere".
++	const FVector  FinalLoc = Actor->GetActorLocation();
++	const FBoxSphereBounds WorldBounds = MeshComponent->Bounds;
++	UE_LOG(
++		LogHolodeck,
++		Log,
++		TEXT("SpawnSceneObjectCommand: spawned '%s' tags=%d loc_ue=(%.0f,%.0f,%.0f) "
++			 "extent_ue=(%.0f,%.0f,%.0f) collision=%d channel4=%d"),
++		*MeshPath,
++		Actor->Tags.Num(),
++		FinalLoc.X, FinalLoc.Y, FinalLoc.Z,
++		WorldBounds.BoxExtent.X, WorldBounds.BoxExtent.Y, WorldBounds.BoxExtent.Z,
++		static_cast<int32>(MeshComponent->GetCollisionEnabled()),
++		static_cast<int32>(MeshComponent->GetCollisionResponseToChannel(ECC_GameTraceChannel4)));
++}
+diff --git a/engine/Source/Holodeck/ClientCommands/Public/ClearSceneObjectsCommand.h b/engine/Source/Holodeck/ClientCommands/Public/ClearSceneObjectsCommand.h
+new file mode 100644
+index 00000000..004dbe6d
+--- /dev/null
++++ b/engine/Source/Holodeck/ClientCommands/Public/ClearSceneObjectsCommand.h
+@@ -0,0 +1,26 @@
++#pragma once
++
++#include "Holodeck.h"
++
++#include "Command.h"
++
++#include "ClearSceneObjectsCommand.generated.h"
++
++/**
++ * ClearSceneObjectsCommand
++ *
++ * Destroys every actor previously spawned by SpawnSceneObjectCommand (i.e. every
++ * actor carrying USpawnSceneObjectCommand::SceneObjectTag()). Used to reset the
++ * scene between randomized compositions inside one running environment.
++ *
++ * NumberParameters are expected to be empty.
++ * StringParameters are expected to be empty.
++ */
++UCLASS()
++class HOLODECK_API UClearSceneObjectsCommand : public UCommand {
++	GENERATED_BODY()
++
++public:
++	// See UCommand for the documentation of this overridden function.
++	void Execute() override;
++};
+diff --git a/engine/Source/Holodeck/ClientCommands/Public/CommandFactory.h b/engine/Source/Holodeck/ClientCommands/Public/CommandFactory.h
+index 6e750981..0b6e70bd 100644
+--- a/engine/Source/Holodeck/ClientCommands/Public/CommandFactory.h
++++ b/engine/Source/Holodeck/ClientCommands/Public/CommandFactory.h
+@@ -13,6 +13,7 @@
+ #include "ChangeBuoyancyCommand.h"
+ #include "ChangeTimeOfDayCommand.h"
+ #include "ChangeWeatherCommand.h"
++#include "ClearSceneObjectsCommand.h"
+ #include "Command.h"
+ #include "CustomCommand.h"
+ #include "DebugDrawCommand.h"
+@@ -26,6 +27,7 @@
+ #include "SendOpticalMessageCommand.h"
+ #include "SetRainParametersCommand.h"
+ #include "SpawnAgentCommand.h"
++#include "SpawnSceneObjectCommand.h"
+ #include "SpawnWaterZoneCommand.h"
+ #include "TeleportCameraCommand.h"
+ #include "TideCommand.h"
+diff --git a/engine/Source/Holodeck/ClientCommands/Public/SpawnSceneObjectCommand.h b/engine/Source/Holodeck/ClientCommands/Public/SpawnSceneObjectCommand.h
+new file mode 100644
+index 00000000..6ad44fb7
+--- /dev/null
++++ b/engine/Source/Holodeck/ClientCommands/Public/SpawnSceneObjectCommand.h
+@@ -0,0 +1,46 @@
++#pragma once
++
++#include "Holodeck.h"
++
++#include "Command.h"
++
++#include "SpawnSceneObjectCommand.generated.h"
++
++/**
++ * SpawnSceneObjectCommand
++ *
++ * Spawns a StaticMeshActor into the running world from a mesh asset path, and
++ * applies actor tags to it. Used by the SSS scene-composition pipeline to build
++ * a randomized scene at runtime, without re-cooking the world package.
++ *
++ * This works for the raycast sonar family because those sensors line-trace the
++ * world every tick (they do not build a cached octree), so actors spawned after
++ * world start are still detected. Do NOT assume the same for octree-based sonars.
++ *
++ * NumberParameters (10 entries, client coordinate frame, meters / degrees):
++ *   [0..2]  location  x, y, z
++ *   [3..5]  rotation  roll, pitch, yaw
++ *   [6..8]  scale     x, y, z
++ *   [9]     burial ratio: fraction of the mesh's height to sink below the given z.
++ *           0 = sit on the seabed, 0.3 = 30% buried. Real wrecks are partly buried,
++ *           which also produces the correct shadow geometry. Computed here rather
++ *           than client-side because only the engine knows the mesh bounds.
++ *
++ * StringParameters (1 or more):
++ *   [0]     mesh asset path, e.g. "/Game/SssObjects/mado_1_ship_remaining_hull"
++ *   [1..]   actor tags to apply, e.g. "wreck", "sssmat:M_Wood_Pine"
++ *
++ * Spawned actors additionally receive the tag defined by SCENE_OBJECT_TAG so
++ * ClearSceneObjectsCommand can find and destroy them.
++ */
++UCLASS()
++class HOLODECK_API USpawnSceneObjectCommand : public UCommand {
++	GENERATED_BODY()
++
++public:
++	// See UCommand for the documentation of this overridden function.
++	void Execute() override;
++
++	/** Tag applied to every actor spawned by this command. */
++	static const TCHAR* SceneObjectTag() { return TEXT("sss_scene_object"); }
++};
+diff --git a/engine/Source/Holodeck/General/Private/Octree.cpp b/engine/Source/Holodeck/General/Private/Octree.cpp
+index 0ee2d035..a768ba94 100644
+--- a/engine/Source/Holodeck/General/Private/Octree.cpp
++++ b/engine/Source/Holodeck/General/Private/Octree.cpp
+@@ -1,6 +1,8 @@
+ // MIT License (c) 2021 BYU FRoStLab see LICENSE file
+ 
+ #include "Octree.h"
++#include "Components/PrimitiveComponent.h"
++#include "Materials/MaterialInterface.h"
+ #include <iostream>
+ 
+ // Initialize static variables
+@@ -477,23 +479,15 @@ void Octree::fillMaterialProperties(FString mat) {
+ }
+ 
+ FString Octree::getMaterialName(FHitResult hit) {
+-	// Get staticmesh material
+-	// UMaterialInterface* mat =
+-	// hit.GetComponent()->GetMaterial(hit.ElementIndex); if(mat != nullptr){
+-	// 	return mat->GetFName().ToString();
+-	// }
+-
+-	// // If not staticmesh, get landscape material
+-	// AActor* actor = hit.GetActor();
+-	// ALandscapeProxy* landscape = reinterpret_cast<ALandscapeProxy*>(actor);
+-	// mat = landscape->LandscapeMaterial;
+-
+-	// if(mat != nullptr){
+-	// 	return mat->GetFName().ToString();
+-	// }
+-
+-	// // If we have extra issues getting material
+-	// UE_LOG(LogHolodeck, Warning, TEXT("Octree: Couldn't get material name for
+-	// an octree leaf, putting as MaterialNotFound"));
++	// UE5-safe 복원: 원본의 reinterpret_cast<ALandscapeProxy*> 는 타입검사 없이
++	// 크래시를 유발했음(비활성 사유, 커밋 #203). null 체크 + 컴포넌트 재질로 대체.
++	// (본 씬은 landscape 없이 StaticMesh 해저를 사용하므로 landscape 분기 불요.)
++	UPrimitiveComponent* comp = hit.GetComponent();
++	if (comp != nullptr) {
++		UMaterialInterface* mat = comp->GetMaterial(hit.ElementIndex);
++		if (mat != nullptr) {
++			return mat->GetName();
++		}
++	}
+ 	return "MaterialNotFound";
+ }
+\ No newline at end of file
+diff --git a/engine/Source/Holodeck/Holodeck.Build.cs b/engine/Source/Holodeck/Holodeck.Build.cs
+index 806d59d7..c6b804d3 100644
+--- a/engine/Source/Holodeck/Holodeck.Build.cs
++++ b/engine/Source/Holodeck/Holodeck.Build.cs
+@@ -40,9 +40,12 @@ public Holodeck(ReadOnlyTargetRules Target) : base(Target)
+ 	        "AIModule", 
+ 	        "SlateCore", 
+ 	        "Slate", 
+-	        "Json", 
+-	        "JsonUtilities", 
+-	        "RenderCore", 
++	        "Json",
++	        "JsonUtilities",
++	        // 환경 프로젝트의 절차적 지형 생성(HolodeckGameMode.cpp)이 요구.
++	        // 참고: 이 의존성은 환경 프로젝트 engine.diff 에 빠져 있어 통합 측에서 추가함.
++	        "ProceduralMeshComponent",
++	        "RenderCore",
+ 	        "RHI", 
+ 			"RHICore",
+ 	        "Landscape",
+diff --git a/engine/Source/Holodeck/HolodeckCore/Private/HolodeckGameMode.cpp b/engine/Source/Holodeck/HolodeckCore/Private/HolodeckGameMode.cpp
+index 30c5aa53..30651291 100644
+--- a/engine/Source/Holodeck/HolodeckCore/Private/HolodeckGameMode.cpp
++++ b/engine/Source/Holodeck/HolodeckCore/Private/HolodeckGameMode.cpp
+@@ -4,11 +4,1491 @@
+ #include "HolodeckGameMode.h"
+ #include "Holodeck.h"
+ #include "HolodeckGPUSonar.h"
++#include "Components/MeshComponent.h"
++#include "Components/StaticMeshComponent.h"
++#include "Conversion.h"
++#include "Engine/StaticMesh.h"
++#include "Engine/StaticMeshActor.h"
++#include "GameFramework/Actor.h"
++#include "Materials/MaterialInstanceDynamic.h"
++#include "Materials/MaterialInterface.h"
++#include "Misc/CommandLine.h"
++#include "Misc/Parse.h"
++#include "ProceduralMeshComponent.h"
++
++#include "MadoSceneConfig.h"
++
+ const char RESET_KEY[] = "RESET";
+ const int  RESET_BYTES = 1;
+ 
+ AHolodeckGameMode* AHolodeckGameMode::SIMMODE = nullptr;
+ 
++namespace {
++
++FVector ShipwreckProjectLocation(float X, float Y, float Z) {
++	return ConvertLinearVector(FVector(X, Y, Z), ClientToUE);
++}
++
++FRotator ShipwreckProjectRotation(float PitchDeg, float YawDeg, float RollDeg) {
++	return ConvertAngularVector(FRotator(PitchDeg, YawDeg, RollDeg), ClientToUE);
++}
++
++float ReadShipwreckProjectFloatEnv(const TCHAR* Name, float DefaultValue) {
++	const FString Value = FPlatformMisc::GetEnvironmentVariable(Name);
++	return Value.IsEmpty() ? DefaultValue : FCString::Atof(*Value);
++}
++
++bool IsShipwreckProjectFlagEnabled(const TCHAR* EnvName, const TCHAR* CommandLineParam) {
++	const FString EnvValue = FPlatformMisc::GetEnvironmentVariable(EnvName);
++	return EnvValue == TEXT("1") || EnvValue.Equals(TEXT("true"), ESearchCase::IgnoreCase) ||
++		   FParse::Param(FCommandLine::Get(), CommandLineParam);
++}
++
++float ShipwreckProjectKhoaDepthAt(float X, float Y) {
++	const FString TerrainProfile =
++		FPlatformMisc::GetEnvironmentVariable(TEXT("HOLOOCEAN_SHIPWRECK_TERRAIN_PROFILE"));
++	if (TerrainProfile.Equals(TEXT("flat"), ESearchCase::IgnoreCase)) {
++		return ReadShipwreckProjectFloatEnv(TEXT("HOLOOCEAN_SHIPWRECK_FLAT_DEPTH_M"), 8.18f);
++	}
++
++	return GetActiveMadoTerrainData().DepthAt(X, Y);
++}
++
++float ShipwreckProjectKhoaTerrainZAt(float X, float Y) {
++	return -ShipwreckProjectKhoaDepthAt(X, Y);
++}
++
++FVector ShipwreckProjectLocalLocation(float LocalX, float LocalY, float Z, float BaseX, float BaseY, float YawDeg) {
++	const float Theta = FMath::DegreesToRadians(YawDeg);
++	return ShipwreckProjectLocation(
++		BaseX + LocalX * FMath::Cos(Theta) - LocalY * FMath::Sin(Theta),
++		BaseY + LocalX * FMath::Sin(Theta) + LocalY * FMath::Cos(Theta),
++		Z);
++}
++
++AStaticMeshActor* SpawnShipwreckProjectBox(
++	UWorld* World,
++	UStaticMesh* Cube,
++	const FString& Label,
++	const FVector& Location,
++	const FRotator& Rotation,
++	const FVector& Scale) {
++	if (!World || !Cube) {
++		return nullptr;
++	}
++
++	FActorSpawnParameters SpawnParams;
++	SpawnParams.Name = FName(*Label);
++	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
++
++	AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>(
++		AStaticMeshActor::StaticClass(),
++		Location,
++		Rotation,
++		SpawnParams);
++	if (!Actor) {
++		return nullptr;
++	}
++
++	Actor->Tags.Add(FName(TEXT("ShipwreckProject")));
++	Actor->Tags.Add(FName(*Label));
++	Actor->SetActorScale3D(Scale);
++	UStaticMeshComponent* MeshComponent = Actor->GetStaticMeshComponent();
++	if (MeshComponent) {
++		MeshComponent->SetStaticMesh(Cube);
++		MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
++		MeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
++		MeshComponent->SetMobility(EComponentMobility::Movable);
++	}
++	return Actor;
++}
++
++FName ShipwreckProjectAcousticMaterialNameForLabel(const FString& Label) {
++	if (Label.Contains(TEXT("MadoAnchorStone"), ESearchCase::IgnoreCase)) {
++		return FName(TEXT("ShipwreckProjectAnchorStone"));
++	}
++	if (Label.Contains(TEXT("MadoReefRock"), ESearchCase::IgnoreCase)) {
++		return FName(TEXT("ShipwreckProjectReefRock"));
++	}
++	if (Label.Contains(TEXT("SurveyWreck"), ESearchCase::IgnoreCase)
++		|| Label.Contains(TEXT("TorpedoMesh_Target"), ESearchCase::IgnoreCase)
++		|| Label.Contains(TEXT("TorpedoMesh_Only"), ESearchCase::IgnoreCase)) {
++		return FName(TEXT("ShipwreckProjectWreck"));
++	}
++	if (Label.Contains(TEXT("GearRope"), ESearchCase::IgnoreCase)
++		|| Label.Contains(TEXT("RockMound"), ESearchCase::IgnoreCase)) {
++		return FName(TEXT("ShipwreckProjectClutter"));
++	}
++	return FName(TEXT("ShipwreckProjectSeabed"));
++}
++
++void ShipwreckProjectApplyBasicColor(
++	UMeshComponent* MeshComponent,
++	const FLinearColor& Color,
++	FName AcousticMaterialName = FName(TEXT("ShipwreckProjectSeabed"))) {
++	if (!MeshComponent) {
++		return;
++	}
++	UMaterialInterface* BaseMaterial = LoadObject<UMaterialInterface>(
++		nullptr,
++		TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
++	if (BaseMaterial) {
++		UMaterialInstanceDynamic* DynMaterial =
++			UMaterialInstanceDynamic::Create(BaseMaterial, MeshComponent, AcousticMaterialName);
++		if (DynMaterial) {
++			DynMaterial->SetVectorParameterValue(TEXT("Color"), Color);
++			MeshComponent->SetMaterial(0, DynMaterial);
++		} else {
++			UE_LOG(LogHolodeck, Warning,
++				TEXT("ShipwreckProject 2.4: MaterialInstanceDynamic 생성 실패 (%s)"),
++				*AcousticMaterialName.ToString());
++		}
++	} else {
++		// 이전에는 조용히 통과해서, 재질이 없는지 winding 문제인지 구분할 수 없었다.
++		UE_LOG(LogHolodeck, Warning,
++			TEXT("ShipwreckProject 2.4: /Engine/BasicShapes/BasicShapeMaterial 로드 실패 "
++				 "-> 메시가 기본 재질로 렌더링됨 (%s)"),
++			*AcousticMaterialName.ToString());
++	}
++}
++
++void ShipwreckProjectApplyActorColor(AStaticMeshActor* Actor, const FLinearColor& Color) {
++	if (!Actor) {
++		return;
++	}
++	ShipwreckProjectApplyBasicColor(
++		Actor->GetStaticMeshComponent(),
++		Color,
++		ShipwreckProjectAcousticMaterialNameForLabel(Actor->GetName()));
++}
++
++FVector2D ShipwreckProjectRotate2D(float X, float Y, float YawDeg) {
++	const float Theta = FMath::DegreesToRadians(YawDeg);
++	return FVector2D(
++		X * FMath::Cos(Theta) - Y * FMath::Sin(Theta),
++		X * FMath::Sin(Theta) + Y * FMath::Cos(Theta));
++}
++
++void ShipwreckProjectComputeNormals(const TArray<FVector>& Vertices, const TArray<int32>& Triangles, TArray<FVector>& Normals) {
++	Normals.Init(FVector::ZeroVector, Vertices.Num());
++	for (int32 TriIndex = 0; TriIndex + 2 < Triangles.Num(); TriIndex += 3) {
++		const int32 A = Triangles[TriIndex];
++		const int32 B = Triangles[TriIndex + 1];
++		const int32 C = Triangles[TriIndex + 2];
++		if (!Vertices.IsValidIndex(A) || !Vertices.IsValidIndex(B) || !Vertices.IsValidIndex(C)) {
++			continue;
++		}
++		const FVector FaceNormal = FVector::CrossProduct(Vertices[B] - Vertices[A], Vertices[C] - Vertices[A]).GetSafeNormal();
++		Normals[A] += FaceNormal;
++		Normals[B] += FaceNormal;
++		Normals[C] += FaceNormal;
++	}
++	for (FVector& Normal : Normals) {
++		Normal = Normal.IsNearlyZero() ? FVector::UpVector : Normal.GetSafeNormal();
++	}
++}
++
++AActor* SpawnShipwreckProjectProceduralMesh(
++	UWorld* World,
++	const FString& Label,
++	const TArray<FVector>& ClientVertices,
++	const TArray<int32>& Triangles,
++	const FLinearColor& Color) {
++	if (!World || ClientVertices.Num() == 0 || Triangles.Num() == 0) {
++		return nullptr;
++	}
++
++	FActorSpawnParameters SpawnParams;
++	SpawnParams.Name = FName(*Label);
++	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
++
++	AActor* Actor = World->SpawnActor<AActor>(AActor::StaticClass(), FTransform::Identity, SpawnParams);
++	if (!Actor) {
++		return nullptr;
++	}
++	Actor->Tags.Add(FName(TEXT("ShipwreckProject")));
++	Actor->Tags.Add(FName(TEXT("MadoReportEnvironment")));
++	Actor->Tags.Add(FName(*Label));
++
++	UProceduralMeshComponent* MeshComp = NewObject<UProceduralMeshComponent>(Actor, *FString::Printf(TEXT("%sMesh"), *Label));
++	if (!MeshComp) {
++		return Actor;
++	}
++	Actor->SetRootComponent(MeshComp);
++	MeshComp->RegisterComponent();
++		// 런타임 스폰 컴포넌트는 Static 이면 UE 가 static draw list 를 만들지 못해
++	// 렌더링이 누락된다(콜리전은 정상 동작하므로 소나에는 잡히지만 화면에선 안 보임).
++	// 트레이스 채널은 mobility 와 무관하므로 Movable 로 두어도 소나 결과는 같다.
++	MeshComp->SetMobility(EComponentMobility::Movable);
++	MeshComp->bUseComplexAsSimpleCollision = true;
++
++	TArray<FVector> Vertices;
++	Vertices.Reserve(ClientVertices.Num());
++	for (const FVector& Vertex : ClientVertices) {
++		Vertices.Add(ShipwreckProjectLocation(Vertex.X, Vertex.Y, Vertex.Z));
++	}
++
++	TArray<FVector> Normals;
++	ShipwreckProjectComputeNormals(Vertices, Triangles, Normals);
++
++	TArray<FVector2D> UV0;
++	TArray<FLinearColor> VertexColors;
++	TArray<FProcMeshTangent> Tangents;
++	UV0.Reserve(Vertices.Num());
++	VertexColors.Reserve(Vertices.Num());
++	Tangents.Reserve(Vertices.Num());
++	for (int32 Index = 0; Index < Vertices.Num(); ++Index) {
++		UV0.Add(FVector2D(0.0f, 0.0f));
++		VertexColors.Add(Color);
++		Tangents.Add(FProcMeshTangent(1.0f, 0.0f, 0.0f));
++	}
++
++	MeshComp->CreateMeshSection_LinearColor(0, Vertices, Triangles, Normals, UV0, VertexColors, Tangents, true);
++	ShipwreckProjectApplyBasicColor(MeshComp, Color, ShipwreckProjectAcousticMaterialNameForLabel(Label));
++	MeshComp->SetCollisionProfileName(TEXT("BlockAll"));
++	MeshComp->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
++	MeshComp->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
++	MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
++	MeshComp->SetGenerateOverlapEvents(false);
++	MeshComp->RecreatePhysicsState();
++	MeshComp->UpdateBounds();
++	Actor->SetActorEnableCollision(true);
++	return Actor;
++}
++
++void ShipwreckProjectSnapActorBottomToTerrainZ(
++	AActor* Actor,
++	float TerrainZClient,
++	float ClearanceM,
++	const FString& Label) {
++	if (!Actor) {
++		return;
++	}
++
++	FVector OriginUE;
++	FVector ExtentUE;
++	Actor->GetActorBounds(true, OriginUE, ExtentUE);
++	const float BottomZUE = OriginUE.Z - ExtentUE.Z;
++	const float TargetBottomZUE = ShipwreckProjectLocation(0.0f, 0.0f, TerrainZClient + ClearanceM).Z;
++	FVector ActorLocationUE = Actor->GetActorLocation();
++	ActorLocationUE.Z += TargetBottomZUE - BottomZUE;
++	Actor->SetActorLocation(ActorLocationUE);
++
++	FVector SnappedOriginUE;
++	FVector SnappedExtentUE;
++	Actor->GetActorBounds(true, SnappedOriginUE, SnappedExtentUE);
++	const float SnappedBottomClient =
++		ConvertLinearVector(FVector(0.0f, 0.0f, SnappedOriginUE.Z - SnappedExtentUE.Z), UEToClient).Z;
++	UE_LOG(
++		LogHolodeck,
++		Verbose,
++		TEXT("ShipwreckProject contact snap: %s terrain_z=%.3f bottom_z=%.3f clearance=%.3f"),
++		*Label,
++		TerrainZClient,
++		SnappedBottomClient,
++		SnappedBottomClient - TerrainZClient);
++}
++
++AStaticMeshActor* SpawnShipwreckProjectGroundContactBox(
++	UWorld* World,
++	UStaticMesh* Cube,
++	const FString& Label,
++	const FVector& Location,
++	const FRotator& Rotation,
++	const FVector& Scale,
++	float TerrainZClient,
++	float ClearanceM = 0.015f) {
++	AStaticMeshActor* Actor = SpawnShipwreckProjectBox(World, Cube, Label, Location, Rotation, Scale);
++	ShipwreckProjectSnapActorBottomToTerrainZ(Actor, TerrainZClient, ClearanceM, Label);
++	return Actor;
++}
++
++AStaticMeshActor* SpawnShipwreckProjectGroundContactBox(
++	UWorld* World,
++	UStaticMesh* Cube,
++	const FString& Label,
++	const FVector& Location,
++	const FRotator& Rotation,
++	const FVector& Scale,
++	float TerrainZClient,
++	float ClearanceM,
++	const FLinearColor& Color) {
++	AStaticMeshActor* Actor =
++		SpawnShipwreckProjectGroundContactBox(World, Cube, Label, Location, Rotation, Scale, TerrainZClient, ClearanceM);
++	ShipwreckProjectApplyActorColor(Actor, Color);
++	return Actor;
++}
++
++AStaticMeshActor* SpawnShipwreckProjectGuideBox(
++	UWorld* World,
++	UStaticMesh* Cube,
++	const FString& Label,
++	const FVector& Location,
++	const FRotator& Rotation,
++	const FVector& Scale,
++	const FLinearColor& Color) {
++	if (!World || !Cube) {
++		return nullptr;
++	}
++
++	FActorSpawnParameters SpawnParams;
++	SpawnParams.Name = FName(*Label);
++	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
++
++	AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>(
++		AStaticMeshActor::StaticClass(),
++		Location,
++		Rotation,
++		SpawnParams);
++	if (!Actor) {
++		return nullptr;
++	}
++
++	Actor->Tags.Add(FName(TEXT("ShipwreckProject")));
++	Actor->Tags.Add(FName(TEXT("ShipwreckProjectVisualDebugGuide")));
++	Actor->Tags.Add(FName(*Label));
++	Actor->SetActorScale3D(Scale);
++
++	UStaticMeshComponent* MeshComponent = Actor->GetStaticMeshComponent();
++	if (MeshComponent) {
++		MeshComponent->SetStaticMesh(Cube);
++		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
++		MeshComponent->SetMobility(EComponentMobility::Movable);
++
++		UMaterialInterface* BaseMaterial = LoadObject<UMaterialInterface>(
++			nullptr,
++			TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
++		if (BaseMaterial) {
++			UMaterialInstanceDynamic* DynMaterial = UMaterialInstanceDynamic::Create(BaseMaterial, MeshComponent);
++			if (DynMaterial) {
++				DynMaterial->SetVectorParameterValue(TEXT("Color"), Color);
++				MeshComponent->SetMaterial(0, DynMaterial);
++			}
++		}
++	}
++	return Actor;
++}
++
++void SpawnShipwreckProjectMeshActor(
++	UWorld* World,
++	UStaticMesh* Mesh,
++	const FString& Label,
++	float X,
++	float Y,
++	float Z,
++	float YawDeg,
++	const FVector& Scale) {
++	if (!World || !Mesh) {
++		return;
++	}
++
++	FActorSpawnParameters SpawnParams;
++	SpawnParams.Name = FName(*Label);
++	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
++
++	AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>(
++		AStaticMeshActor::StaticClass(),
++		ShipwreckProjectLocation(X, Y, Z),
++		ShipwreckProjectRotation(0.0f, YawDeg, 0.0f),
++		SpawnParams);
++	if (!Actor) {
++		return;
++	}
++
++	Actor->Tags.Add(FName(TEXT("ShipwreckProject")));
++	Actor->Tags.Add(FName(*Label));
++	Actor->SetActorScale3D(Scale);
++	UStaticMeshComponent* MeshComponent = Actor->GetStaticMeshComponent();
++	if (MeshComponent) {
++		MeshComponent->SetStaticMesh(Mesh);
++		MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
++		MeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
++		MeshComponent->SetMobility(EComponentMobility::Movable);
++	}
++}
++
++void SpawnShipwreckProjectIntactWreck(
++	UWorld* World,
++	UStaticMesh* Cube,
++	const FString& Prefix,
++	float BaseX,
++	float BaseY,
++	float BaseZ,
++	float YawDeg) {
++	ShipwreckProjectSnapActorBottomToTerrainZ(
++		SpawnShipwreckProjectBox(
++			World,
++			Cube,
++			Prefix + TEXT("_MainHull"),
++			ShipwreckProjectLocalLocation(0.0f, 0.0f, BaseZ + 0.38f, BaseX, BaseY, YawDeg),
++			ShipwreckProjectRotation(0.0f, YawDeg, 0.0f),
++			FVector(13.5f, 3.2f, 0.74f)),
++		BaseZ,
++		0.015f,
++		Prefix + TEXT("_MainHull"));
++	SpawnShipwreckProjectBox(
++		World,
++		Cube,
++		Prefix + TEXT("_Keel"),
++		ShipwreckProjectLocalLocation(0.0f, 0.0f, BaseZ + 1.10f, BaseX, BaseY, YawDeg),
++		ShipwreckProjectRotation(0.0f, YawDeg, 0.0f),
++		FVector(13.8f, 0.18f, 0.25f));
++	SpawnShipwreckProjectBox(
++		World,
++		Cube,
++		Prefix + TEXT("_PortRail"),
++		ShipwreckProjectLocalLocation(0.0f, -2.05f, BaseZ + 0.90f, BaseX, BaseY, YawDeg),
++		ShipwreckProjectRotation(0.0f, YawDeg, 0.0f),
++		FVector(13.4f, 0.20f, 0.42f));
++	SpawnShipwreckProjectBox(
++		World,
++		Cube,
++		Prefix + TEXT("_StarboardRail"),
++		ShipwreckProjectLocalLocation(0.0f, 2.05f, BaseZ + 0.90f, BaseX, BaseY, YawDeg),
++		ShipwreckProjectRotation(0.0f, YawDeg, 0.0f),
++		FVector(13.4f, 0.20f, 0.42f));
++	for (int32 Index = 0; Index < 7; ++Index) {
++		const float X = -5.4f + Index * 1.8f;
++		SpawnShipwreckProjectBox(
++			World,
++			Cube,
++			FString::Printf(TEXT("%s_Rib_%02d"), *Prefix, Index + 1),
++			ShipwreckProjectLocalLocation(X, 0.0f, BaseZ + 1.18f, BaseX, BaseY, YawDeg),
++			ShipwreckProjectRotation(0.0f, YawDeg + 90.0f, 0.0f),
++			FVector(4.0f, 0.18f, 0.35f));
++	}
++}
++
++void SpawnShipwreckProjectBuriedWreck(
++	UWorld* World,
++	UStaticMesh* Cube,
++	const FString& Prefix,
++	float BaseX,
++	float BaseY,
++	float BaseZ,
++	float YawDeg) {
++	SpawnShipwreckProjectBox(
++		World,
++		Cube,
++		Prefix + TEXT("_SedimentBlanket"),
++		ShipwreckProjectLocalLocation(0.0f, 0.0f, BaseZ + 0.22f, BaseX, BaseY, YawDeg),
++		ShipwreckProjectRotation(0.0f, YawDeg, 0.0f),
++		FVector(12.5f, 4.4f, 0.78f));
++	for (int32 Index = 0; Index < 6; ++Index) {
++		const float X = -5.0f + Index * 2.0f;
++		const float Y = (Index % 2 == 0) ? -1.25f : 1.25f;
++		SpawnShipwreckProjectBox(
++			World,
++			Cube,
++			FString::Printf(TEXT("%s_ExposedTimber_%02d"), *Prefix, Index + 1),
++			ShipwreckProjectLocalLocation(X, Y, BaseZ + 0.78f + 0.04f * (Index % 2), BaseX, BaseY, YawDeg),
++			ShipwreckProjectRotation(0.0f, YawDeg + 90.0f + (Index - 2) * 3.0f, 0.0f),
++			FVector(3.0f, 0.18f, 0.24f));
++	}
++}
++
++void SpawnShipwreckProjectFragmentedWreck(
++	UWorld* World,
++	UStaticMesh* Cube,
++	const FString& Prefix,
++	float BaseX,
++	float BaseY,
++	float BaseZ,
++	float YawDeg) {
++	const float Xs[] = {-5.8f, -3.0f, -0.5f, 2.4f, 5.0f};
++	const float Ys[] = {-1.6f, 1.3f, -0.8f, 1.7f, -1.1f};
++	const float Yaws[] = {30.0f, 105.0f, -18.0f, 70.0f, -55.0f};
++	const float Lens[] = {5.6f, 4.1f, 6.0f, 3.8f, 4.7f};
++	for (int32 Index = 0; Index < 5; ++Index) {
++		SpawnShipwreckProjectGroundContactBox(
++			World,
++			Cube,
++			FString::Printf(TEXT("%s_Fragment_%02d"), *Prefix, Index + 1),
++			ShipwreckProjectLocalLocation(Xs[Index], Ys[Index], BaseZ + 0.55f + 0.08f * (Index % 3), BaseX, BaseY, YawDeg),
++			ShipwreckProjectRotation(0.0f, YawDeg + Yaws[Index], 0.0f),
++			FVector(Lens[Index], 0.46f, 0.52f),
++			BaseZ);
++	}
++	SpawnShipwreckProjectGroundContactBox(
++		World,
++		Cube,
++		Prefix + TEXT("_LowHullPatch"),
++		ShipwreckProjectLocalLocation(0.3f, 0.1f, BaseZ + 0.24f, BaseX, BaseY, YawDeg),
++		ShipwreckProjectRotation(0.0f, YawDeg + 8.0f, 0.0f),
++		FVector(8.0f, 2.0f, 0.24f),
++		BaseZ);
++}
++
++void SpawnShipwreckProjectLowReliefWreck(
++	UWorld* World,
++	UStaticMesh* Cube,
++	const FString& Prefix,
++	float BaseX,
++	float BaseY,
++	float BaseZ,
++	float YawDeg) {
++	for (int32 Index = 0; Index < 8; ++Index) {
++		const float X = -5.8f + Index * 1.65f;
++		const float Y = (Index % 2 == 0) ? -0.9f : 0.9f;
++		SpawnShipwreckProjectGroundContactBox(
++			World,
++			Cube,
++			FString::Printf(TEXT("%s_LowPlank_%02d"), *Prefix, Index + 1),
++			ShipwreckProjectLocalLocation(X, Y, BaseZ + 0.11f, BaseX, BaseY, YawDeg),
++			ShipwreckProjectRotation(0.0f, YawDeg + ((Index % 3) - 1) * 8.0f, 0.0f),
++			FVector(4.6f, 0.24f, 0.10f),
++			BaseZ);
++	}
++	SpawnShipwreckProjectGroundContactBox(
++		World,
++		Cube,
++		Prefix + TEXT("_MudMat"),
++		ShipwreckProjectLocalLocation(0.0f, 0.0f, BaseZ + 0.05f, BaseX, BaseY, YawDeg),
++		ShipwreckProjectRotation(0.0f, YawDeg, 0.0f),
++		FVector(11.5f, 3.7f, 0.09f),
++		BaseZ,
++		0.005f);
++}
++
++void SpawnShipwreckProjectRibFieldWreck(
++	UWorld* World,
++	UStaticMesh* Cube,
++	const FString& Prefix,
++	float BaseX,
++	float BaseY,
++	float BaseZ,
++	float YawDeg) {
++	for (int32 Index = 0; Index < 12; ++Index) {
++		const float X = -6.0f + Index * 1.1f;
++		SpawnShipwreckProjectGroundContactBox(
++			World,
++			Cube,
++			FString::Printf(TEXT("%s_Rib_%02d"), *Prefix, Index + 1),
++			ShipwreckProjectLocalLocation(X, (Index % 2 == 0) ? -0.2f : 0.2f, BaseZ + 0.62f, BaseX, BaseY, YawDeg),
++			ShipwreckProjectRotation(0.0f, YawDeg + 90.0f + ((Index % 3) - 1) * 6.0f, 0.0f),
++			FVector(4.0f, 0.22f, 0.50f),
++			BaseZ);
++	}
++	for (int32 Index = 0; Index < 3; ++Index) {
++		SpawnShipwreckProjectGroundContactBox(
++			World,
++			Cube,
++			FString::Printf(TEXT("%s_Longitudinal_%02d"), *Prefix, Index + 1),
++			ShipwreckProjectLocalLocation(0.0f, -0.75f + Index * 0.75f, BaseZ + 0.36f, BaseX, BaseY, YawDeg),
++			ShipwreckProjectRotation(0.0f, YawDeg + (Index - 1) * 3.0f, 0.0f),
++			FVector(12.8f, 0.22f, 0.26f),
++			BaseZ);
++	}
++}
++
++void SpawnShipwreckProjectDebrisFieldWreck(
++	UWorld* World,
++	UStaticMesh* Cube,
++	const FString& Prefix,
++	float BaseX,
++	float BaseY,
++	float BaseZ,
++	float YawDeg) {
++	SpawnShipwreckProjectFragmentedWreck(World, Cube, Prefix + TEXT("_Timber"), BaseX, BaseY, BaseZ, YawDeg);
++	const float Xs[] = {-7.0f, -3.8f, 0.5f, 3.8f, 6.6f};
++	const float Ys[] = {2.6f, -2.7f, 2.4f, -2.3f, 1.8f};
++	const float Yaws[] = {-20.0f, 42.0f, 5.0f, 76.0f, -48.0f};
++	for (int32 Index = 0; Index < 5; ++Index) {
++		SpawnShipwreckProjectGroundContactBox(
++			World,
++			Cube,
++			FString::Printf(TEXT("%s_MixedClutter_%02d"), *Prefix, Index + 1),
++			ShipwreckProjectLocalLocation(Xs[Index], Ys[Index], BaseZ + 0.24f + 0.05f * (Index % 2), BaseX, BaseY, YawDeg),
++			ShipwreckProjectRotation(0.0f, YawDeg + Yaws[Index], 0.0f),
++			FVector(1.8f + 0.4f * (Index % 2), 0.55f, 0.42f),
++			BaseZ);
++	}
++}
++
++void SpawnShipwreckProjectSeafloorPatch(
++	UWorld* World,
++	UStaticMesh* Cube,
++	float BaseZ) {
++	if (!IsShipwreckProjectFlagEnabled(
++			TEXT("HOLOOCEAN_SHIPWRECK_ADD_SEAFLOOR"),
++			TEXT("ShipwreckProjectAddSeafloor"))) {
++		return;
++	}
++
++	SpawnShipwreckProjectBox(
++		World,
++		Cube,
++		TEXT("ShipwreckProject_SeafloorPatch_Acoustic"),
++		ShipwreckProjectLocation(-20.0f, 0.0f, BaseZ - 0.08f),
++		ShipwreckProjectRotation(0.0f, 0.0f, 0.0f),
++		FVector(150.0f, 115.0f, 0.04f));
++}
++
++void SpawnShipwreckProjectLiteratureSeabedProxy(
++	UWorld* World,
++	UStaticMesh* Cube,
++	bool bKhoaSurveyScene,
++	float BaseZ) {
++	if (!World || !Cube) {
++		return;
++	}
++
++	const auto TerrainZAt = [bKhoaSurveyScene, BaseZ](float X, float Y) {
++		return bKhoaSurveyScene ? ShipwreckProjectKhoaTerrainZAt(X, Y) : BaseZ;
++	};
++
++	const FLinearColor RippleColor(0.54f, 0.49f, 0.36f, 1.0f);
++	const FLinearColor RidgeColor(0.47f, 0.40f, 0.28f, 1.0f);
++	const FLinearColor SedimentColor(0.58f, 0.54f, 0.44f, 1.0f);
++
++	struct FSeabedFeature {
++		const TCHAR* Label;
++		float X;
++		float Y;
++		float YawDeg;
++		float Length;
++		float Width;
++		float Height;
++		FLinearColor Color;
++	};
++
++	const FSeabedFeature Features[] = {
++		// Low, elongated sand-ripple/ridge proxies. They are grounded collision geometry
++		// so SSS can see weak seabed texture without acting like shipwreck targets.
++		{TEXT("SandRipple_01"), -59.0f, -34.0f, 18.0f, 9.0f, 0.10f, 0.055f, RippleColor},
++		{TEXT("SandRipple_02"), -48.0f, -31.0f, 18.0f, 8.5f, 0.10f, 0.050f, RippleColor},
++		{TEXT("SandRipple_03"), -34.0f, -27.0f, 18.0f, 8.5f, 0.10f, 0.050f, RippleColor},
++		{TEXT("SandRipple_04"), -18.0f, -31.0f, 19.0f, 9.0f, 0.10f, 0.055f, RippleColor},
++		{TEXT("SandRipple_05"), -2.0f, -34.0f, 17.0f, 8.5f, 0.10f, 0.050f, RippleColor},
++		{TEXT("SandRipple_06"), 15.0f, -30.0f, 17.0f, 8.0f, 0.10f, 0.050f, RippleColor},
++		{TEXT("SandRipple_07"), -61.0f, -12.0f, 21.0f, 9.0f, 0.10f, 0.055f, RippleColor},
++		{TEXT("SandRipple_08"), -43.0f, -8.0f, 20.0f, 8.5f, 0.10f, 0.050f, RippleColor},
++		{TEXT("SandRipple_09"), -25.0f, -13.0f, 19.0f, 9.0f, 0.10f, 0.055f, RippleColor},
++		{TEXT("SandRipple_10"), -4.0f, -9.0f, 20.0f, 8.5f, 0.10f, 0.050f, RippleColor},
++		{TEXT("SandRipple_11"), 17.0f, -12.0f, 18.0f, 9.0f, 0.10f, 0.055f, RippleColor},
++		{TEXT("SandRipple_12"), -55.0f, 13.0f, 24.0f, 8.5f, 0.10f, 0.050f, RippleColor},
++		{TEXT("SandRipple_13"), -36.0f, 10.0f, 23.0f, 8.5f, 0.10f, 0.050f, RippleColor},
++		{TEXT("SandRipple_14"), -18.0f, 15.0f, 23.0f, 9.0f, 0.10f, 0.055f, RippleColor},
++		{TEXT("SandRipple_15"), 2.0f, 11.0f, 22.0f, 8.5f, 0.10f, 0.050f, RippleColor},
++		{TEXT("SandRipple_16"), 20.0f, 16.0f, 23.0f, 8.5f, 0.10f, 0.050f, RippleColor},
++		{TEXT("SandRipple_17"), -52.0f, 34.0f, 26.0f, 8.0f, 0.10f, 0.050f, RippleColor},
++		{TEXT("SandRipple_18"), -30.0f, 31.0f, 26.0f, 8.5f, 0.10f, 0.050f, RippleColor},
++		{TEXT("SandRipple_19"), -8.0f, 35.0f, 25.0f, 8.5f, 0.10f, 0.050f, RippleColor},
++		{TEXT("SandRipple_20"), 14.0f, 32.0f, 25.0f, 8.0f, 0.10f, 0.050f, RippleColor},
++		// Broader low relief lenses/mounds that represent coarser patch boundaries.
++		{TEXT("SedimentLens_01"), -52.0f, -2.0f, -8.0f, 11.0f, 3.4f, 0.070f, SedimentColor},
++		{TEXT("SedimentLens_02"), -22.0f, 3.0f, 7.0f, 12.0f, 3.8f, 0.075f, SedimentColor},
++		{TEXT("SedimentLens_03"), 9.0f, -4.0f, -5.0f, 11.0f, 3.4f, 0.070f, SedimentColor},
++		{TEXT("LowRidge_01"), -41.0f, 24.0f, 32.0f, 16.0f, 0.36f, 0.120f, RidgeColor},
++		{TEXT("LowRidge_02"), -4.0f, 26.0f, 31.0f, 15.0f, 0.36f, 0.110f, RidgeColor},
++		{TEXT("LowRidge_03"), 15.0f, -23.0f, 12.0f, 14.0f, 0.34f, 0.105f, RidgeColor},
++	};
++
++	for (int32 Index = 0; Index < UE_ARRAY_COUNT(Features); ++Index) {
++		const FSeabedFeature& Feature = Features[Index];
++		const float TerrainZ = TerrainZAt(Feature.X, Feature.Y);
++		SpawnShipwreckProjectGroundContactBox(
++			World,
++			Cube,
++			FString::Printf(TEXT("ShipwreckProject_SeabedFeature_%s"), Feature.Label),
++			ShipwreckProjectLocation(Feature.X, Feature.Y, TerrainZ + 0.10f),
++			ShipwreckProjectRotation(0.0f, Feature.YawDeg, 0.0f),
++			FVector(Feature.Length, Feature.Width, Feature.Height),
++			TerrainZ,
++			0.004f,
++			Feature.Color);
++	}
++
++	UE_LOG(LogHolodeck, Log, TEXT("ShipwreckProject 2.4: spawned literature-backed low relief seabed proxy features"));
++}
++
++void ShipwreckProjectBuildSlabOutline(
++	float LengthM,
++	float WidthM,
++	bool bGrooved,
++	int32 ShapeCode,
++	TArray<FVector2D>& Outline) {
++	Outline.Reset();
++	const float HL = LengthM * 0.5f;
++	const float HW = WidthM * 0.5f;
++
++	if (bGrooved) {
++		const float Neck = HW * (0.58f + 0.05f * (ShapeCode % 3));
++		Outline.Add(FVector2D(-HL, -HW * (0.30f + 0.08f * (ShapeCode % 2))));
++		Outline.Add(FVector2D(-HL * 0.62f, -HW * 0.94f));
++		Outline.Add(FVector2D(-HL * 0.18f, -HW));
++		Outline.Add(FVector2D(-HL * 0.055f, -Neck));
++		Outline.Add(FVector2D(HL * 0.055f, -Neck * 0.96f));
++		Outline.Add(FVector2D(HL * 0.22f, -HW * 0.95f));
++		Outline.Add(FVector2D(HL * 0.72f, -HW * (0.80f + 0.07f * ((ShapeCode + 1) % 2))));
++		Outline.Add(FVector2D(HL, -HW * (0.18f + 0.05f * (ShapeCode % 3))));
++		Outline.Add(FVector2D(HL * (0.82f - 0.05f * (ShapeCode % 2)), HW * 0.78f));
++		Outline.Add(FVector2D(HL * 0.22f, HW));
++		Outline.Add(FVector2D(HL * 0.055f, Neck));
++		Outline.Add(FVector2D(-HL * 0.055f, Neck * 0.98f));
++		Outline.Add(FVector2D(-HL * 0.18f, HW * 0.92f));
++		Outline.Add(FVector2D(-HL * 0.66f, HW * 0.84f));
++		Outline.Add(FVector2D(-HL, HW * (0.36f + 0.07f * ((ShapeCode + 1) % 2))));
++		return;
++	}
++
++	if (ShapeCode % 3 == 0) {
++		Outline.Add(FVector2D(-HL, -HW * 0.25f));
++		Outline.Add(FVector2D(-HL * 0.50f, -HW));
++		Outline.Add(FVector2D(HL * 0.35f, -HW * 0.86f));
++		Outline.Add(FVector2D(HL, -HW * 0.18f));
++		Outline.Add(FVector2D(HL * 0.70f, HW * 0.78f));
++		Outline.Add(FVector2D(-HL * 0.18f, HW));
++		Outline.Add(FVector2D(-HL * 0.82f, HW * 0.55f));
++	} else if (ShapeCode % 3 == 1) {
++		Outline.Add(FVector2D(-HL, -HW * 0.78f));
++		Outline.Add(FVector2D(-HL * 0.12f, -HW));
++		Outline.Add(FVector2D(HL, -HW * 0.45f));
++		Outline.Add(FVector2D(HL * 0.84f, HW * 0.48f));
++		Outline.Add(FVector2D(HL * 0.22f, HW));
++		Outline.Add(FVector2D(-HL * 0.72f, HW * 0.70f));
++	} else {
++		Outline.Add(FVector2D(-HL, -HW * 0.12f));
++		Outline.Add(FVector2D(-HL * 0.52f, -HW * 0.88f));
++		Outline.Add(FVector2D(HL * 0.18f, -HW));
++		Outline.Add(FVector2D(HL, -HW * 0.30f));
++		Outline.Add(FVector2D(HL * 0.52f, HW * 0.92f));
++		Outline.Add(FVector2D(-HL * 0.28f, HW));
++		Outline.Add(FVector2D(-HL * 0.88f, HW * 0.46f));
++	}
++}
++
++void SpawnShipwreckProjectMadoIrregularSlab(
++	UWorld* World,
++	const FString& Label,
++	float X,
++	float Y,
++	float YawDeg,
++	float LengthM,
++	float WidthM,
++	float ThicknessM,
++	bool bGrooved,
++	int32 ShapeCode,
++	const FLinearColor& Color,
++	const FString& AcousticTag = FString()) {
++	TArray<FVector2D> Outline;
++	ShipwreckProjectBuildSlabOutline(LengthM, WidthM, bGrooved, ShapeCode, Outline);
++	if (Outline.Num() < 3) {
++		return;
++	}
++
++	const float TerrainZ = ShipwreckProjectKhoaTerrainZAt(X, Y);
++	const float Clearance = 0.008f;
++	const float RoughAmp = FMath::Min(ThicknessM * 0.16f, 0.018f);
++	TArray<FVector> Vertices;
++	TArray<int32> Triangles;
++	Vertices.Reserve(Outline.Num() * 2 + 2);
++
++	for (int32 Index = 0; Index < Outline.Num(); ++Index) {
++		const FVector2D Rotated = ShipwreckProjectRotate2D(Outline[Index].X, Outline[Index].Y, YawDeg);
++		const float Rough = RoughAmp * FMath::Sin((Index + 1) * (ShapeCode + 2) * 1.37f);
++		Vertices.Add(FVector(X + Rotated.X, Y + Rotated.Y, TerrainZ + Clearance + ThicknessM + Rough));
++	}
++	const int32 BottomStart = Vertices.Num();
++	for (int32 Index = 0; Index < Outline.Num(); ++Index) {
++		const FVector2D Rotated = ShipwreckProjectRotate2D(Outline[Index].X, Outline[Index].Y, YawDeg);
++		Vertices.Add(FVector(X + Rotated.X, Y + Rotated.Y, TerrainZ + Clearance));
++	}
++	const int32 TopCenter = Vertices.Num();
++	Vertices.Add(FVector(X, Y, TerrainZ + Clearance + ThicknessM + RoughAmp * 0.35f));
++	const int32 BottomCenter = Vertices.Num();
++	Vertices.Add(FVector(X, Y, TerrainZ + Clearance));
++
++	const int32 N = Outline.Num();
++	for (int32 Index = 0; Index < N; ++Index) {
++		const int32 Next = (Index + 1) % N;
++		Triangles.Add(TopCenter);
++		Triangles.Add(Index);
++		Triangles.Add(Next);
++
++		Triangles.Add(BottomCenter);
++		Triangles.Add(BottomStart + Next);
++		Triangles.Add(BottomStart + Index);
++
++		Triangles.Add(Index);
++		Triangles.Add(BottomStart + Index);
++		Triangles.Add(BottomStart + Next);
++		Triangles.Add(Index);
++		Triangles.Add(BottomStart + Next);
++		Triangles.Add(Next);
++	}
++
++	AActor* SlabActor = SpawnShipwreckProjectProceduralMesh(World, Label, Vertices, Triangles, Color);
++	// FIELD_IMPLEMENTATION_GUIDE.md sec 4.1/4.3: "닻돌·암초 등 단일 재질 오브젝트 -> 스폰
++	// 지점에서 Actor->Tags.Add(TEXT("sssmat:<name>")) 한 줄". AcousticTag is empty for
++	// callers that don't want the new tag; both current callers below pass one.
++	if (SlabActor && !AcousticTag.IsEmpty()) {
++		SlabActor->Tags.Add(FName(*AcousticTag));
++	}
++}
++
++void SpawnShipwreckProjectMadoAnchorStoneField(UWorld* World) {
++	const FMadoSceneConfig& Config = GetActiveMadoSceneConfig();
++	const FLinearColor		 DefaultColor(0.35f, 0.35f, 0.33f, 1.0f);
++	for (int32 Index = 0; Index < Config.AnchorStones.Num(); ++Index) {
++		const FMadoAnchorStoneConfig& Stone = Config.AnchorStones[Index];
++		SpawnShipwreckProjectMadoIrregularSlab(
++			World,
++			FString::Printf(TEXT("ShipwreckProject_MadoAnchorStone_%s"), *Stone.Id),
++			Stone.CenterX,
++			Stone.CenterY,
++			Stone.YawDeg,
++			Stone.LengthCm * 0.01f,
++			Stone.WidthCm * 0.01f,
++			FMath::Clamp(Stone.ThicknessCm * 0.01f, 0.045f, 0.24f),
++			true,
++			Index,
++			DefaultColor,
++			TEXT("sssmat:ShipwreckProjectAnchorStone"));
++	}
++}
++
++// Shallow radial depression around a wreck's base, tapering back to the surrounding terrain
++// height. Reuses the same triangulated-fan mesh pattern as other low-relief seabed features in
++// this file, just with a negative (dug-in) height offset instead of a positive one. Depth is
++// full ScourDepthM at the hull footprint and fades to 0 at RadiusM.
++void ShipwreckProjectSpawnScourPit(UWorld* World, const FString& Label, float CenterX, float CenterY, float RadiusM, float DepthM) {
++	constexpr int32 Segments = 24;
++	constexpr int32 Rings = 3;
++	const float		Clearance = 0.004f;
++
++	TArray<FVector> Vertices;
++	TArray<int32>	Triangles;
++	Vertices.Reserve(1 + Segments * Rings);
++
++	const float CenterZ = ShipwreckProjectKhoaTerrainZAt(CenterX, CenterY) - Clearance - DepthM;
++	Vertices.Add(FVector(CenterX, CenterY, CenterZ));
++
++	for (int32 Ring = 1; Ring <= Rings; ++Ring) {
++		const float R = static_cast<float>(Ring) / static_cast<float>(Rings);
++		for (int32 Segment = 0; Segment < Segments; ++Segment) {
++			const float Angle = 2.0f * PI * static_cast<float>(Segment) / static_cast<float>(Segments);
++			const float Px = CenterX + FMath::Cos(Angle) * RadiusM * R;
++			const float Py = CenterY + FMath::Sin(Angle) * RadiusM * R;
++			const float EdgeFalloff = FMath::Clamp(1.0f - R * R, 0.0f, 1.0f);
++			const float Z = ShipwreckProjectKhoaTerrainZAt(Px, Py) - Clearance - DepthM * EdgeFalloff;
++			Vertices.Add(FVector(Px, Py, Z));
++		}
++	}
++
++	for (int32 Segment = 0; Segment < Segments; ++Segment) {
++		const int32 Next = (Segment + 1) % Segments;
++		Triangles.Add(0);
++		Triangles.Add(1 + Next);
++		Triangles.Add(1 + Segment);
++	}
++	for (int32 Ring = 2; Ring <= Rings; ++Ring) {
++		const int32 PrevStart = 1 + (Ring - 2) * Segments;
++		const int32 CurrStart = 1 + (Ring - 1) * Segments;
++		for (int32 Segment = 0; Segment < Segments; ++Segment) {
++			const int32 Next = (Segment + 1) % Segments;
++			Triangles.Add(PrevStart + Segment);
++			Triangles.Add(CurrStart + Next);
++			Triangles.Add(CurrStart + Segment);
++			Triangles.Add(PrevStart + Segment);
++			Triangles.Add(PrevStart + Next);
++			Triangles.Add(CurrStart + Next);
++		}
++	}
++
++	SpawnShipwreckProjectProceduralMesh(World, Label, Vertices, Triangles, FLinearColor(0.20f, 0.19f, 0.17f, 1.0f));
++}
++
++// Wreck placement: position/yaw/dimensions/burial/scour come from GetActiveMadoSceneConfig()'s
++// wreck_spawns array (see MadoSceneConfig.h). The 3D mesh asset itself is out of scope for this
++// environment repo -- these are procedural placeholder hulls (box keel/ribs/rails) until a real
++// asset is swapped in; each spawn's "evidence" field in the JSON records whether it is
++// report-sourced or a test-only stand-in (the bundled default has one test-only hull, no report
++// source for its position/shape -- see its evidence field).
++void SpawnShipwreckProjectMadoWrecks(UWorld* World) {
++	const FMadoSceneConfig& Config = GetActiveMadoSceneConfig();
++	UStaticMesh*			 Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
++	if (!Cube) {
++		return;
++	}
++
++	for (const FMadoWreckSpawnConfig& Wreck : Config.WreckSpawns) {
++		const FString Prefix = FString::Printf(TEXT("ShipwreckProject_SurveyWreck_%s"), *Wreck.Id);
++		const float	  BaseX = Wreck.CenterX;
++		const float	  BaseY = Wreck.CenterY;
++		const float	  YawDeg = Wreck.YawDeg;
++		const float	  Length = Wreck.LengthM;
++		const float	  Width = Wreck.WidthM;
++		const float	  Height = Wreck.HeightM;
++		// Burial lowers the whole hull toward/into the surrounding grade, reducing exposed
++		// freeboard (and therefore the SSS highlight/shadow footprint) proportionally --
++		// burial_fraction=0 sits proud on the seafloor, =1 has its high point flush with grade.
++		const float BaseZ = ShipwreckProjectKhoaTerrainZAt(BaseX, BaseY) + 0.05f - Wreck.BurialFraction * Height;
++
++		TArray<AStaticMeshActor*> Parts;
++		Parts.Add(SpawnShipwreckProjectBox(
++			World,
++			Cube,
++			Prefix + TEXT("_Keel"),
++			ShipwreckProjectLocalLocation(0.0f, 0.0f, BaseZ + 0.18f * Height, BaseX, BaseY, YawDeg),
++			ShipwreckProjectRotation(0.0f, YawDeg, 0.0f),
++			FVector(Length, 0.18f, 0.16f * Height)));
++
++		for (int32 Index = 0; Index < 8; ++Index) {
++			const float X = -0.42f * Length + Index * (0.84f * Length / 7.0f);
++			const float RibWidth = Width * (0.62f + 0.34f * FMath::Sin((Index + 1) * PI / 9.0f));
++			Parts.Add(SpawnShipwreckProjectBox(
++				World,
++				Cube,
++				FString::Printf(TEXT("%s_Rib_%02d"), *Prefix, Index + 1),
++				ShipwreckProjectLocalLocation(X, 0.0f, BaseZ + 0.46f * Height, BaseX, BaseY, YawDeg),
++				ShipwreckProjectRotation(0.0f, YawDeg + 90.0f, 0.0f),
++				FVector(RibWidth, 0.16f, 0.22f * Height)));
++		}
++
++		Parts.Add(SpawnShipwreckProjectBox(
++			World,
++			Cube,
++			Prefix + TEXT("_PortRail"),
++			ShipwreckProjectLocalLocation(0.0f, -0.5f * Width, BaseZ + 0.55f * Height, BaseX, BaseY, YawDeg),
++			ShipwreckProjectRotation(0.0f, YawDeg, 0.0f),
++			FVector(Length, 0.16f, 0.20f * Height)));
++		Parts.Add(SpawnShipwreckProjectBox(
++			World,
++			Cube,
++			Prefix + TEXT("_StarboardRail"),
++			ShipwreckProjectLocalLocation(0.0f, 0.5f * Width, BaseZ + 0.55f * Height, BaseX, BaseY, YawDeg),
++			ShipwreckProjectRotation(0.0f, YawDeg, 0.0f),
++			FVector(Length, 0.16f, 0.20f * Height)));
++
++		for (AStaticMeshActor* Part : Parts) {
++			if (Part) {
++				Part->Tags.Add(FName(TEXT("wreck")));
++				// FIELD_IMPLEMENTATION_GUIDE.md sec 4.1: material tag, separate from the
++				// "wreck" GT-label tag above (that one drives is_target, not acoustics).
++				Part->Tags.Add(FName(TEXT("sssmat:ShipwreckProjectWreck")));
++			}
++		}
++
++		if (Wreck.bScourPitEnabled) {
++			ShipwreckProjectSpawnScourPit(
++				World,
++				Prefix + TEXT("_ScourPit"),
++				BaseX,
++				BaseY,
++				Length * Wreck.ScourRadiusLengthMultiple,
++				Wreck.ScourDepthM);
++		}
++
++		UE_LOG(
++			LogHolodeck,
++			Log,
++			TEXT("ShipwreckProject 2.4: spawned wreck '%s' at %.1f,%.1f burial=%.2f scour=%d evidence=\"%s\""),
++			*Wreck.Id,
++			BaseX,
++			BaseY,
++			Wreck.BurialFraction,
++			Wreck.bScourPitEnabled ? 1 : 0,
++			*Wreck.Evidence);
++	}
++}
++
++void SpawnShipwreckProjectMadoReefEdgeCues(UWorld* World) {
++	const FMadoSceneConfig& Config = GetActiveMadoSceneConfig();
++	const FLinearColor		 ReefColor(0.25f, 0.24f, 0.22f, 1.0f);
++	for (int32 Index = 0; Index < Config.ReefEdgeCues.Num(); ++Index) {
++		const FMadoReefCueConfig& Reef = Config.ReefEdgeCues[Index];
++		SpawnShipwreckProjectMadoIrregularSlab(
++			World,
++			FString::Printf(TEXT("ShipwreckProject_MadoReefRockEdge_%s"), *Reef.Id),
++			Reef.CenterX,
++			Reef.CenterY,
++			Reef.YawDeg,
++			Reef.LengthM,
++			Reef.WidthM,
++			Reef.ThicknessM,
++			false,
++			10 + Index,
++			ReefColor,
++			TEXT("sssmat:ShipwreckProjectReefRock"));
++	}
++}
++
++void SpawnShipwreckProjectMadoReportEnvironmentCore(UWorld* World) {
++	const FMadoSceneConfig& Config = GetActiveMadoSceneConfig();
++	SpawnShipwreckProjectMadoAnchorStoneField(World);
++	SpawnShipwreckProjectMadoReefEdgeCues(World);
++	SpawnShipwreckProjectMadoWrecks(World);
++	UE_LOG(
++		LogHolodeck,
++		Log,
++		TEXT("ShipwreckProject 2.4: spawned Mado report environment core '%s' from %s facies_zones=%d anchor_stones=%d reef_edge=%d wrecks=%d"),
++		*Config.SceneName,
++		*Config.SourceJsonPath,
++		Config.FaciesZones.Num(),
++		Config.AnchorStones.Num(),
++		Config.ReefEdgeCues.Num(),
++		Config.WreckSpawns.Num());
++}
++
++void SpawnShipwreckProjectKhoaSmoothTerrainMesh(UWorld* World) {
++	if (!World) {
++		return;
++	}
++
++	const FString TerrainEnv =
++		FPlatformMisc::GetEnvironmentVariable(TEXT("HOLOOCEAN_SHIPWRECK_KHOA_SMOOTH_TERRAIN_MESH"));
++	if (!TerrainEnv.IsEmpty() && TerrainEnv.Equals(TEXT("0"))) {
++		UE_LOG(LogHolodeck, Log, TEXT("ShipwreckProject 2.4: KHOA smooth terrain mesh disabled by env"));
++		return;
++	}
++
++	FActorSpawnParameters SpawnParams;
++	SpawnParams.Name = FName(TEXT("ShipwreckProject_SeabedProxy_KhoaSmoothBathymetryTerrain"));
++	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
++
++	AActor* TerrainActor = World->SpawnActor<AActor>(AActor::StaticClass(), FTransform::Identity, SpawnParams);
++	if (!TerrainActor) {
++		UE_LOG(LogHolodeck, Warning, TEXT("ShipwreckProject 2.4: failed to spawn KHOA smooth terrain actor"));
++		return;
++	}
++	TerrainActor->Tags.Add(FName(TEXT("ShipwreckProject")));
++	TerrainActor->Tags.Add(FName(TEXT("SeabedProxy")));
++	TerrainActor->Tags.Add(FName(TEXT("KhoaSmoothBathymetryTerrain")));
++	// FIELD_IMPLEMENTATION_GUIDE.md sec 4.1: declares this actor's material as a
++	// position-dependent field, dispatched to GetFieldImpedanceAtLocation(). The three
++	// tags above are kept for the legacy ActorName-matching fallback; this one is new.
++	TerrainActor->Tags.Add(FName(TEXT("sssfacies")));
++
++	UProceduralMeshComponent* MeshComp =
++		NewObject<UProceduralMeshComponent>(TerrainActor, TEXT("KhoaSmoothBathymetryTerrain"));
++	if (!MeshComp) {
++		UE_LOG(LogHolodeck, Warning, TEXT("ShipwreckProject 2.4: failed to create KHOA smooth terrain mesh component"));
++		return;
++	}
++
++	TerrainActor->SetRootComponent(MeshComp);
++	MeshComp->RegisterComponent();
++		// 런타임 스폰 컴포넌트는 Static 이면 UE 가 static draw list 를 만들지 못해
++	// 렌더링이 누락된다(콜리전은 정상 동작하므로 소나에는 잡히지만 화면에선 안 보임).
++	// 트레이스 채널은 mobility 와 무관하므로 Movable 로 두어도 소나 결과는 같다.
++	MeshComp->SetMobility(EComponentMobility::Movable);
++	MeshComp->bUseComplexAsSimpleCollision = true;
++
++	const FMadoTerrainData& Terrain = GetActiveMadoTerrainData();
++	const int32 GridX = Terrain.GridX;
++	const int32 GridY = Terrain.GridY;
++	TArray<FVector> Vertices;
++	Vertices.Reserve(GridX * GridY);
++	for (int32 Iy = 0; Iy < GridY; ++Iy) {
++		for (int32 Ix = 0; Ix < GridX; ++Ix) {
++			const int32 Index = Iy * GridX + Ix;
++			const float X = Terrain.XValues[Ix];
++			const float Y = Terrain.YValues[Iy];
++			const float Z = -ShipwreckProjectKhoaDepthAt(X, Y);
++			Vertices.Add(ShipwreckProjectLocation(X, Y, Z));
++		}
++	}
++
++	TArray<int32> Triangles;
++	Triangles.Reserve((GridX - 1) * (GridY - 1) * 6);
++	for (int32 Iy = 0; Iy < GridY - 1; ++Iy) {
++		for (int32 Ix = 0; Ix < GridX - 1; ++Ix) {
++			const int32 V00 = Iy * GridX + Ix;
++			const int32 V10 = Iy * GridX + Ix + 1;
++			const int32 V01 = (Iy + 1) * GridX + Ix;
++			const int32 V11 = (Iy + 1) * GridX + Ix + 1;
++
++			// winding 주의: 정점은 ShipwreckProjectLocation() 을 거쳐 **Y 가 반전된**
++			// UE 좌표(왼손계)로 들어간다. UE 앞면 법선은 우손 cross 의 부호 반대이므로,
++			// (V00,V01,V10) 순서는 앞면이 **아래**를 향하게 되어 위에서 내려다볼 때
++			// backface culling 으로 지형이 통째로 안 보인다(콜리전은 정상이라 소나에는
++			// 잡혀서 원인 파악이 어려웠다). 두 인덱스를 바꿔 앞면을 위로 돌린다.
++			Triangles.Add(V00);
++			Triangles.Add(V10);
++			Triangles.Add(V01);
++			Triangles.Add(V10);
++			Triangles.Add(V11);
++			Triangles.Add(V01);
++		}
++	}
++
++	TArray<FVector> Normals;
++	TArray<FVector2D> UV0;
++	TArray<FLinearColor> VertexColors;
++	TArray<FProcMeshTangent> Tangents;
++	Normals.Init(FVector::ZeroVector, Vertices.Num());
++	Tangents.Reserve(Vertices.Num());
++	UV0.Reserve(Vertices.Num());
++	VertexColors.Reserve(Vertices.Num());
++	const float DepthRange =
++		FMath::Max(Terrain.DepthMaxM - Terrain.DepthMinM, 0.001f);
++	for (int32 Iy = 0; Iy < GridY; ++Iy) {
++		for (int32 Ix = 0; Ix < GridX; ++Ix) {
++			const int32 Index = Iy * GridX + Ix;
++			UV0.Add(FVector2D(
++				static_cast<float>(Ix) / static_cast<float>(GridX - 1),
++				static_cast<float>(Iy) / static_cast<float>(GridY - 1)));
++			const float X = Terrain.XValues[Ix];
++			const float Y = Terrain.YValues[Iy];
++			const float Depth01 =
++				(ShipwreckProjectKhoaDepthAt(X, Y) - Terrain.DepthMinM) / DepthRange;
++			VertexColors.Add(FLinearColor(0.16f + 0.14f * Depth01, 0.15f + 0.10f * Depth01, 0.10f, 1.0f));
++			Tangents.Add(FProcMeshTangent(1.0f, 0.0f, 0.0f));
++		}
++	}
++
++	for (int32 TriIndex = 0; TriIndex + 2 < Triangles.Num(); TriIndex += 3) {
++		const int32 A = Triangles[TriIndex];
++		const int32 B = Triangles[TriIndex + 1];
++		const int32 C = Triangles[TriIndex + 2];
++		const FVector FaceNormal = FVector::CrossProduct(Vertices[B] - Vertices[A], Vertices[C] - Vertices[A]).GetSafeNormal();
++		Normals[A] += FaceNormal;
++		Normals[B] += FaceNormal;
++		Normals[C] += FaceNormal;
++	}
++	for (FVector& Normal : Normals) {
++		Normal = Normal.IsNearlyZero() ? FVector::UpVector : Normal.GetSafeNormal();
++		if (Normal.Z < 0.0f) {
++			Normal *= -1.0f;
++		}
++	}
++
++	MeshComp->CreateMeshSection_LinearColor(0, Vertices, Triangles, Normals, UV0, VertexColors, Tangents, true);
++	ShipwreckProjectApplyBasicColor(
++		MeshComp,
++		FLinearColor(0.66f, 0.60f, 0.46f, 1.0f),
++		FName(TEXT("ShipwreckProjectSeabed")));
++	MeshComp->SetCollisionProfileName(TEXT("BlockAll"));
++	MeshComp->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
++	MeshComp->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
++	MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
++	MeshComp->SetGenerateOverlapEvents(false);
++	MeshComp->RecreatePhysicsState();
++	MeshComp->UpdateBounds();
++	TerrainActor->SetActorEnableCollision(true);
++	// 렌더 상태를 명시적으로 갱신하고, 실제 바운즈를 남긴다. 바운즈가 0/비정상이면
++	// 프러스텀 컬링으로 통째로 사라지므로 화면에 안 보이는 원인을 구분할 수 있다.
++	MeshComp->MarkRenderStateDirty();
++	{
++		const FBoxSphereBounds B = MeshComp->Bounds;
++		UE_LOG(LogHolodeck, Log,
++			TEXT("ShipwreckProject 2.4: terrain bounds origin=(%.0f,%.0f,%.0f) extent=(%.0f,%.0f,%.0f) radius=%.0f visible=%d mobility=%d"),
++			B.Origin.X, B.Origin.Y, B.Origin.Z,
++			B.BoxExtent.X, B.BoxExtent.Y, B.BoxExtent.Z, B.SphereRadius,
++			MeshComp->IsVisible() ? 1 : 0,
++			static_cast<int32>(MeshComp->Mobility));
++	}
++
++	UE_LOG(
++		LogHolodeck,
++		Log,
++		TEXT("ShipwreckProject 2.4: spawned KHOA smooth bathymetry terrain grid=%dx%d vertices=%d triangles=%d x=[%.1f,%.1f] y=[%.1f,%.1f] depth=[%.2f,%.2f]"),
++		GridX,
++		GridY,
++		Vertices.Num(),
++		Triangles.Num() / 3,
++		Terrain.XMinM,
++		Terrain.XMaxM,
++		Terrain.YMinM,
++		Terrain.YMaxM,
++		Terrain.DepthMinM,
++		Terrain.DepthMaxM);
++}
++
++void SpawnShipwreckProjectKhoaSurveyVisualDebugGuides(UWorld* World, UStaticMesh* Cube) {
++	if (!World || !Cube) {
++		return;
++	}
++
++	const FLinearColor TrackColor(0.95f, 0.95f, 0.18f, 1.0f);
++	const FLinearColor BoundaryColor(0.10f, 0.75f, 1.00f, 1.0f);
++	const FLinearColor ContactColor(1.00f, 0.20f, 0.12f, 1.0f);
++	const FLinearColor PostColor(0.05f, 1.00f, 0.25f, 1.0f);
++
++	const float XMin = -66.0f;
++	const float XMax = 26.0f;
++	const float YMin = -42.0f;
++	const float YMax = 42.0f;
++	const float SegmentLength = 7.5f;
++	const float GuideLift = 0.08f;
++
++	const float TrackYs[] = {-36.0f, -18.0f, 0.0f, 18.0f, 24.0f};
++	for (int32 TrackIndex = 0; TrackIndex < UE_ARRAY_COUNT(TrackYs); ++TrackIndex) {
++		const float Y = TrackYs[TrackIndex];
++		int32 SegmentIndex = 0;
++		for (float X = XMin + SegmentLength * 0.5f; X < XMax; X += SegmentLength) {
++			const float Z = ShipwreckProjectKhoaTerrainZAt(X, Y) + GuideLift;
++			SpawnShipwreckProjectGuideBox(
++				World,
++				Cube,
++				FString::Printf(TEXT("ShipwreckProject_VisualGuide_Track_%02d_%02d"), TrackIndex + 1, SegmentIndex + 1),
++				ShipwreckProjectLocation(X, Y, Z),
++				ShipwreckProjectRotation(0.0f, 0.0f, 0.0f),
++				FVector(SegmentLength * 0.95f, 0.08f, 0.035f),
++				TrackColor);
++			++SegmentIndex;
++		}
++	}
++
++	const float BorderYs[] = {YMin, YMax};
++	for (int32 BorderIndex = 0; BorderIndex < UE_ARRAY_COUNT(BorderYs); ++BorderIndex) {
++		const float Y = BorderYs[BorderIndex];
++		int32 SegmentIndex = 0;
++		for (float X = XMin + SegmentLength * 0.5f; X < XMax; X += SegmentLength) {
++			const float Z = ShipwreckProjectKhoaTerrainZAt(X, Y) + GuideLift;
++			SpawnShipwreckProjectGuideBox(
++				World,
++				Cube,
++				FString::Printf(TEXT("ShipwreckProject_VisualGuide_BorderY_%02d_%02d"), BorderIndex + 1, SegmentIndex + 1),
++				ShipwreckProjectLocation(X, Y, Z),
++				ShipwreckProjectRotation(0.0f, 0.0f, 0.0f),
++				FVector(SegmentLength * 0.95f, 0.13f, 0.04f),
++				BoundaryColor);
++			++SegmentIndex;
++		}
++	}
++
++	const float BorderXs[] = {XMin, XMax};
++	for (int32 BorderIndex = 0; BorderIndex < UE_ARRAY_COUNT(BorderXs); ++BorderIndex) {
++		const float X = BorderXs[BorderIndex];
++		int32 SegmentIndex = 0;
++		for (float Y = YMin + SegmentLength * 0.5f; Y < YMax; Y += SegmentLength) {
++			const float Z = ShipwreckProjectKhoaTerrainZAt(X, Y) + GuideLift;
++			SpawnShipwreckProjectGuideBox(
++				World,
++				Cube,
++				FString::Printf(TEXT("ShipwreckProject_VisualGuide_BorderX_%02d_%02d"), BorderIndex + 1, SegmentIndex + 1),
++				ShipwreckProjectLocation(X, Y, Z),
++				ShipwreckProjectRotation(0.0f, 0.0f, 0.0f),
++				FVector(0.13f, SegmentLength * 0.95f, 0.04f),
++				BoundaryColor);
++			++SegmentIndex;
++		}
++	}
++
++	struct FContactMarker {
++		const TCHAR* Label;
++		float X;
++		float Y;
++		float FootprintX;
++		float FootprintY;
++		float PostHeight;
++	};
++
++	const FContactMarker Markers[] = {
++		{TEXT("Intact_A"), -58.0f, -22.0f, 4.2f, 2.0f, 2.8f},
++		{TEXT("Buried_A"), -47.0f, 9.0f, 4.0f, 2.0f, 2.4f},
++		{TEXT("Fragmented_A"), -32.0f, 31.0f, 4.0f, 2.0f, 2.4f},
++		{TEXT("LowRelief_A"), -10.0f, -20.0f, 3.8f, 1.8f, 1.5f},
++		{TEXT("RibField_A"), 7.0f, 17.0f, 4.0f, 2.0f, 2.6f},
++		{TEXT("DebrisField_A"), 19.0f, -31.0f, 3.8f, 2.0f, 2.3f},
++		{TEXT("Fragmented_B"), -6.0f, 36.0f, 4.0f, 2.0f, 2.4f},
++		{TEXT("Buried_B"), 24.0f, 4.0f, 4.0f, 2.0f, 2.4f},
++		{TEXT("Gear_01"), -63.0f, 4.0f, 1.8f, 1.0f, 1.3f},
++		{TEXT("Gear_02"), -52.0f, -36.0f, 1.8f, 1.0f, 1.3f},
++		{TEXT("Gear_03"), 0.0f, -24.0f, 1.8f, 1.0f, 1.3f},
++		{TEXT("Gear_04"), 25.0f, -18.0f, 1.8f, 1.0f, 1.3f},
++		{TEXT("Rock_01"), -66.0f, 18.0f, 1.2f, 1.2f, 1.1f},
++		{TEXT("Rock_02"), -60.0f, -6.0f, 1.2f, 1.2f, 1.1f},
++		{TEXT("Rock_03"), -44.0f, -30.0f, 1.2f, 1.2f, 1.1f},
++		{TEXT("Rock_04"), -9.0f, -18.0f, 1.2f, 1.2f, 1.1f},
++	};
++
++	for (int32 Index = 0; Index < UE_ARRAY_COUNT(Markers); ++Index) {
++		const FContactMarker& Marker = Markers[Index];
++		const float TerrainZ = ShipwreckProjectKhoaTerrainZAt(Marker.X, Marker.Y);
++		SpawnShipwreckProjectGuideBox(
++			World,
++			Cube,
++			FString::Printf(TEXT("ShipwreckProject_VisualGuide_Footprint_%s"), Marker.Label),
++			ShipwreckProjectLocation(Marker.X, Marker.Y, TerrainZ + 0.035f),
++			ShipwreckProjectRotation(0.0f, 0.0f, 0.0f),
++			FVector(Marker.FootprintX, Marker.FootprintY, 0.035f),
++			ContactColor);
++		SpawnShipwreckProjectGuideBox(
++			World,
++			Cube,
++			FString::Printf(TEXT("ShipwreckProject_VisualGuide_Post_%s"), Marker.Label),
++			ShipwreckProjectLocation(Marker.X, Marker.Y, TerrainZ + Marker.PostHeight * 0.5f),
++			ShipwreckProjectRotation(0.0f, 0.0f, 0.0f),
++			FVector(0.11f, 0.11f, Marker.PostHeight),
++			PostColor);
++	}
++
++	UE_LOG(LogHolodeck, Log, TEXT("ShipwreckProject 2.4: spawned KHOA survey visual debug guide layer"));
++}
++
++void SpawnShipwreckProjectFlatUnderwaterScene(UWorld* World) {
++	const bool bRequested = IsShipwreckProjectFlagEnabled(
++		TEXT("HOLOOCEAN_SHIPWRECK_SPAWN"),
++		TEXT("ShipwreckProjectSpawn"));
++	if (!bRequested) {
++		return;
++	}
++
++	const FString ScenePreset = FPlatformMisc::GetEnvironmentVariable(TEXT("HOLOOCEAN_SHIPWRECK_SCENE_PRESET"));
++	if (ScenePreset.Equals(TEXT("khoa_bathymetry_only_v1"), ESearchCase::IgnoreCase)) {
++		SpawnShipwreckProjectKhoaSmoothTerrainMesh(World);
++		UE_LOG(LogHolodeck, Log, TEXT("ShipwreckProject 2.4: spawned khoa_bathymetry_only_v1 scene"));
++		return;
++	}
++	const bool bKhoaVisualDebugScene =
++		ScenePreset.Equals(TEXT("khoa_survey_scene_visual_debug_v1"), ESearchCase::IgnoreCase) ||
++		ScenePreset.Equals(TEXT("khoa_survey_scene_literature_visual_debug_v2"), ESearchCase::IgnoreCase);
++	const bool bKhoaLiteratureScene =
++		ScenePreset.Equals(TEXT("khoa_survey_scene_literature_v2"), ESearchCase::IgnoreCase) ||
++		ScenePreset.Equals(TEXT("khoa_survey_scene_literature_visual_debug_v2"), ESearchCase::IgnoreCase);
++	// Resolved via GetActiveMadoSceneConfig() (MadoSceneConfig.h), not a hardcoded string-equals
++	// check, so that HOLOOCEAN_SHIPWRECK_SCENE_PRESET can point at *any* JSON config file (not
++	// just the two preset names originally supported) without a C++ change.
++	const bool bMadoReportScene = IsMadoReportSceneActive();
++	const bool bMadoReportVisualDebugScene =
++		ScenePreset.Equals(TEXT("mado_report_environment_visual_debug_v1"), ESearchCase::IgnoreCase);
++	const bool bKhoaSurveyScene =
++		ScenePreset.Equals(TEXT("khoa_survey_scene_v1"), ESearchCase::IgnoreCase) ||
++		bKhoaVisualDebugScene ||
++		bKhoaLiteratureScene ||
++		bMadoReportScene;
++	if (bKhoaSurveyScene) {
++		SpawnShipwreckProjectKhoaSmoothTerrainMesh(World);
++		UE_LOG(LogHolodeck, Log, TEXT("ShipwreckProject 2.4: spawned KHOA smooth terrain under survey scene"));
++	}
++
++	UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
++	if (!Cube) {
++		UE_LOG(LogHolodeck, Warning, TEXT("ShipwreckProject 2.4: failed to load cube mesh"));
++		return;
++	}
++
++	const float BaseZ = ReadShipwreckProjectFloatEnv(TEXT("HOLOOCEAN_SHIPWRECK_BASE_Z"), -8.18f);
++	if (!bKhoaSurveyScene) {
++		SpawnShipwreckProjectSeafloorPatch(World, Cube, BaseZ);
++	}
++	const auto SurveyBaseZAt = [bKhoaSurveyScene, BaseZ](float X, float Y) {
++		return bKhoaSurveyScene ? ShipwreckProjectKhoaTerrainZAt(X, Y) : BaseZ;
++	};
++
++	if (IsShipwreckProjectFlagEnabled(
++			TEXT("HOLOOCEAN_SHIPWRECK_ONLY_AGENT_MESH"),
++			TEXT("ShipwreckProjectOnlyAgentMesh"))) {
++		UStaticMesh* TorpedoMesh = LoadObject<UStaticMesh>(
++			nullptr,
++			TEXT("/Game/HolodeckContent/Agents/TorpedoAUV/TorpedoAUVMesh.TorpedoAUVMesh"));
++		if (TorpedoMesh) {
++			SpawnShipwreckProjectMeshActor(
++				World,
++				TorpedoMesh,
++				TEXT("ShipwreckProject_TorpedoMesh_Only_A"),
++				-36.0f,
++				-24.0f,
++				BaseZ + 0.35f,
++				90.0f,
++				FVector(2.2f, 2.2f, 2.2f));
++			SpawnShipwreckProjectMeshActor(
++				World,
++				TorpedoMesh,
++				TEXT("ShipwreckProject_TorpedoMesh_Only_B"),
++				-12.0f,
++				12.0f,
++				BaseZ + 0.35f,
++				45.0f,
++				FVector(2.2f, 2.2f, 2.2f));
++			UE_LOG(LogHolodeck, Log, TEXT("ShipwreckProject 2.4: spawned only TorpedoAUV mesh targets at base_z=%.2f"), BaseZ);
++		} else {
++			UE_LOG(LogHolodeck, Warning, TEXT("ShipwreckProject 2.4: failed to load TorpedoAUVMesh for only-agent-mesh test"));
++		}
++		return;
++	}
++
++	if (bMadoReportScene) {
++		SpawnShipwreckProjectMadoReportEnvironmentCore(World);
++		UE_LOG(
++			LogHolodeck,
++			Log,
++			TEXT("ShipwreckProject 2.4: spawned mado_report_environment_v1 without cube wreck/gear proxy actors; visual_debug=%d"),
++			bMadoReportVisualDebugScene ? 1 : 0);
++		return;
++	}
++
++	SpawnShipwreckProjectIntactWreck(World, Cube, TEXT("SurveyWreck_Intact_A"), -58.0f, -22.0f, SurveyBaseZAt(-58.0f, -22.0f), 22.0f);
++	SpawnShipwreckProjectBuriedWreck(World, Cube, TEXT("SurveyWreck_Buried_A"), -47.0f, 9.0f, SurveyBaseZAt(-47.0f, 9.0f), -18.0f);
++	SpawnShipwreckProjectFragmentedWreck(World, Cube, TEXT("SurveyWreck_Fragmented_A"), -32.0f, 31.0f, SurveyBaseZAt(-32.0f, 31.0f), 41.0f);
++	SpawnShipwreckProjectLowReliefWreck(World, Cube, TEXT("SurveyWreck_LowRelief_A"), -10.0f, -20.0f, SurveyBaseZAt(-10.0f, -20.0f), 12.0f);
++	SpawnShipwreckProjectRibFieldWreck(World, Cube, TEXT("SurveyWreck_RibField_A"), 7.0f, 17.0f, SurveyBaseZAt(7.0f, 17.0f), -28.0f);
++	SpawnShipwreckProjectDebrisFieldWreck(World, Cube, TEXT("SurveyWreck_DebrisField_A"), 19.0f, -31.0f, SurveyBaseZAt(19.0f, -31.0f), 36.0f);
++	SpawnShipwreckProjectFragmentedWreck(World, Cube, TEXT("SurveyWreck_Fragmented_B"), -6.0f, 36.0f, SurveyBaseZAt(-6.0f, 36.0f), -52.0f);
++	SpawnShipwreckProjectBuriedWreck(World, Cube, TEXT("SurveyWreck_Buried_B"), 24.0f, 4.0f, SurveyBaseZAt(24.0f, 4.0f), 63.0f);
++
++	const float GearXs[] = {-63.0f, -52.0f, 0.0f, 25.0f};
++	const float GearYs[] = {4.0f, -36.0f, -24.0f, -18.0f};
++	const float GearYaw[] = {28.0f, -8.0f, 16.0f, -35.0f};
++	for (int32 Index = 0; Index < 4; ++Index) {
++		SpawnShipwreckProjectGroundContactBox(
++			World,
++			Cube,
++			FString::Printf(TEXT("ShipwreckProject_GearRope_%02d"), Index + 1),
++			ShipwreckProjectLocation(GearXs[Index], GearYs[Index], SurveyBaseZAt(GearXs[Index], GearYs[Index]) + 0.11f),
++			ShipwreckProjectRotation(0.0f, GearYaw[Index], 0.0f),
++			FVector(4.4f, 0.10f, 0.08f),
++			SurveyBaseZAt(GearXs[Index], GearYs[Index]),
++			0.006f,
++			FLinearColor(0.09f, 0.10f, 0.08f, 1.0f));
++	}
++
++	const float RockXs[] = {-66.0f, -60.0f, -44.0f, -9.0f};
++	const float RockYs[] = {18.0f, -6.0f, -30.0f, -18.0f};
++	for (int32 Index = 0; Index < 4; ++Index) {
++		SpawnShipwreckProjectGroundContactBox(
++			World,
++			Cube,
++			FString::Printf(TEXT("ShipwreckProject_RockMound_%02d"), Index + 1),
++			ShipwreckProjectLocation(RockXs[Index], RockYs[Index], SurveyBaseZAt(RockXs[Index], RockYs[Index]) + 0.15f),
++			ShipwreckProjectRotation(0.0f, -30.0f + Index * 17.0f, 0.0f),
++			FVector(1.0f + 0.2f * Index, 0.65f, 0.16f),
++			SurveyBaseZAt(RockXs[Index], RockYs[Index]),
++			0.006f,
++			FLinearColor(0.16f, 0.15f, 0.13f, 1.0f));
++	}
++
++	if (bKhoaLiteratureScene) {
++		SpawnShipwreckProjectLiteratureSeabedProxy(World, Cube, bKhoaSurveyScene, BaseZ);
++	}
++
++	if (IsShipwreckProjectFlagEnabled(
++			TEXT("HOLOOCEAN_SHIPWRECK_USE_AGENT_MESH"),
++			TEXT("ShipwreckProjectUseAgentMesh"))) {
++		UStaticMesh* TorpedoMesh = LoadObject<UStaticMesh>(
++			nullptr,
++			TEXT("/Game/HolodeckContent/Agents/TorpedoAUV/TorpedoAUVMesh.TorpedoAUVMesh"));
++		if (TorpedoMesh) {
++			SpawnShipwreckProjectMeshActor(
++				World,
++				TorpedoMesh,
++				TEXT("ShipwreckProject_TorpedoMesh_Target_A"),
++				-32.0f,
++				0.0f,
++				SurveyBaseZAt(-32.0f, 0.0f) + 0.35f,
++				90.0f,
++				FVector(1.7f, 1.7f, 1.7f));
++			UE_LOG(LogHolodeck, Log, TEXT("ShipwreckProject 2.4: spawned TorpedoAUV mesh target for non-cube sonar test"));
++		} else {
++			UE_LOG(LogHolodeck, Warning, TEXT("ShipwreckProject 2.4: failed to load TorpedoAUVMesh for non-cube sonar test"));
++		}
++	}
++
++	if (bKhoaSurveyScene &&
++		(bKhoaVisualDebugScene || IsShipwreckProjectFlagEnabled(
++									 TEXT("HOLOOCEAN_SHIPWRECK_VISUAL_DEBUG_GUIDES"),
++									 TEXT("ShipwreckProjectVisualDebugGuides")))) {
++		SpawnShipwreckProjectKhoaSurveyVisualDebugGuides(World, Cube);
++	}
++
++	UE_LOG(LogHolodeck, Log, TEXT("ShipwreckProject 2.4: spawned FlatUnderwater acoustic demo scene at base_z=%.2f"), BaseZ);
++}
++
++}
++
+ AHolodeckGameMode::AHolodeckGameMode(const FObjectInitializer& ObjectInitializer)
+ 	: AGameMode(ObjectInitializer), bHolodeckIsOn(true) {
+ 	PrimaryActorTick.bCanEverTick = true;
+@@ -42,6 +1522,8 @@ void AHolodeckGameMode::StartPlay() {
+ 	// if (GetWorld()->WorldType == EWorldType::Game)
+ 	//	bHolodeckIsOn = FParse::Param(FCommandLine::Get(), TEXT("HolodeckOn"));
+ 
++	SpawnShipwreckProjectFlatUnderwaterScene(GetWorld());
++
+ 	// Make sure Octree is properly initialized
+ 	Octree::initOctree(GetWorld());
+ 
+@@ -595,4 +2077,4 @@ bool AHolodeckGameMode::IsAnnotationRGBValid(FString annotation_name, FColor col
+ 	// TODO: Implement if needed, remove if not needed.
+ 	UE_LOG(LogHolodeck, Warning, TEXT("IsAnnotationRGBValid is TODO for now"));
+ 	return false;
+-}
+\ No newline at end of file
++}
+diff --git a/engine/Source/Holodeck/HolodeckCore/Private/HolodeckRaycastSonar.cpp b/engine/Source/Holodeck/HolodeckCore/Private/HolodeckRaycastSonar.cpp
+index d3bc4229..13b7c6ca 100644
+--- a/engine/Source/Holodeck/HolodeckCore/Private/HolodeckRaycastSonar.cpp
++++ b/engine/Source/Holodeck/HolodeckCore/Private/HolodeckRaycastSonar.cpp
+@@ -8,6 +8,151 @@
+ #include "Holodeck.h"
+ #include "Benchmarker.h"
+ #include "HolodeckBuoyantAgent.h"
++#include "Conversion.h"
++#include "MadoSceneConfig.h"   // 환경 프로젝트: 퇴적상 필드 설정 (engine.diff)
++
++// ---------------------------------------------------------------------------
++// 퇴적상(facies) 필드 구현 — 환경 프로젝트 제공분.
++// 출처: HoloOcean-simulation / patches/FIELD_IMPEDANCE_HOOK.md (그대로 반영)
++// 존별 근거는 Content/Config/mado_scenes/*.json 의 facies_zones[].evidence 참고.
++// 씬은 HOLOOCEAN_SHIPWRECK_SCENE_PRESET 환경변수로 선택되며, 미설정 시 비활성이라
++// -1.0f 가 반환되어 순정 재질 조회 경로로 폴백한다.
++// ---------------------------------------------------------------------------
++namespace {
++
++float RaycastMadoReportEllipseScore(
++	float X, float Y, float CenterX, float CenterY, float YawDeg, float RadiusX, float RadiusY) {
++	const float Dx = X - CenterX;
++	const float Dy = Y - CenterY;
++	const float Theta = FMath::DegreesToRadians(YawDeg);
++	const float CosTheta = FMath::Cos(Theta);
++	const float SinTheta = FMath::Sin(Theta);
++	const float LocalX = Dx * CosTheta + Dy * SinTheta;
++	const float LocalY = -Dx * SinTheta + Dy * CosTheta;
++	const float Rx = FMath::Max(RadiusX, 0.001f);
++	const float Ry = FMath::Max(RadiusY, 0.001f);
++	return (LocalX * LocalX) / (Rx * Rx) + (LocalY * LocalY) / (Ry * Ry);
++}
++
++float RaycastSmoothStep(float Edge0, float Edge1, float X) {
++	const float T = FMath::Clamp((X - Edge0) / (Edge1 - Edge0), 0.0f, 1.0f);
++	return T * T * (3.0f - 2.0f * T);
++}
++
++float RaycastHash01(float X, float Y) {
++	// 주의: 예전에는 여기서 `Floor(X * 1.7)` 를 한 번 더 걸었다. 이미 정수인 격자
++	// 좌표에 그러면 인접 격자점이 같은 해시로 뭉쳐(0,1,3,5,6,8,... 로 건너뜀)
++	// 잡음에 규칙적인 계단이 생긴다. 격자 좌표를 그대로 쓴다.
++	const float V = FMath::Sin(X * 12.9898f + Y * 78.233f) * 43758.5453f;
++	return FMath::Frac(FMath::Abs(V));
++}
++
++// 격자점의 임의 방향 단위벡터와 오프셋의 내적 — 그래디언트(Perlin) 잡음의 핵심.
++float RaycastGradDot(float IX, float IY, float DX, float DY) {
++	const float Ang = RaycastHash01(IX, IY) * 2.0f * PI;
++	return FMath::Cos(Ang) * DX + FMath::Sin(Ang) * DY;
++}
++
++// Smooth (bilinearly-interpolated, continuous) value noise, used both to warp zone boundaries
++// away from perfect ellipses and to add internal texture within a zone.
++float RaycastValueNoise(float X, float Y, float CellSize) {
++	// 이름은 유지하되 **그래디언트(Perlin) 잡음**으로 바꿨다(2026-08-04).
++	//
++	// 값잡음은 격자점에 스칼라를 두고 보간해서 격자점마다 기울기가 0 이 된다.
++	// 그러면 셀 경계가 평평한 이음매로 남고 셀 안쪽만 부풀어 **축 정렬 네모 무늬**가
++	// 생긴다(실측: 셀 경계 기울기가 셀 중앙의 0.17 배). 소나 이미지에서 배경이
++	// "옛날 게임 텍스처처럼 네모네모"하게 보인 원인이다.
++	// 그래디언트 잡음은 격자점에 임의 방향 단위벡터를 두고 오프셋과 내적하므로
++	// 격자점에서 기울기가 0 이 아니고 특징이 등방적이다(같은 실측에서 0.97).
++	// 반환 범위는 호출부 호환을 위해 [0,1] 로 맞춘다.
++	const float GX = X / FMath::Max(CellSize, 0.001f);
++	const float GY = Y / FMath::Max(CellSize, 0.001f);
++	const float X0 = FMath::FloorToFloat(GX);
++	const float Y0 = FMath::FloorToFloat(GY);
++	const float TX = GX - X0;
++	const float TY = GY - Y0;
++	// quintic fade — 2차 도함수까지 연속이라 이음매가 남지 않는다.
++	const float SX = TX * TX * TX * (TX * (TX * 6.0f - 15.0f) + 10.0f);
++	const float SY = TY * TY * TY * (TY * (TY * 6.0f - 15.0f) + 10.0f);
++	const float N00 = RaycastGradDot(X0,        Y0,        TX,        TY);
++	const float N10 = RaycastGradDot(X0 + 1.0f, Y0,        TX - 1.0f, TY);
++	const float N01 = RaycastGradDot(X0,        Y0 + 1.0f, TX,        TY - 1.0f);
++	const float N11 = RaycastGradDot(X0 + 1.0f, Y0 + 1.0f, TX - 1.0f, TY - 1.0f);
++	const float Top = FMath::Lerp(N00, N10, SX);
++	const float Bottom = FMath::Lerp(N01, N11, SX);
++	// Perlin 2D 의 이론 최대는 sqrt(2)/2 -> [-0.7071, 0.7071] 를 [0,1] 로 사상.
++	return FMath::Clamp(FMath::Lerp(Top, Bottom, SY) * 0.7071f + 0.5f, 0.0f, 1.0f);
++}
++
++float RaycastMadoZoneWeight(
++	float X, float Y, float CenterX, float CenterY, float YawDeg, float RadiusX, float RadiusY,
++	float DomainWarpCellSize = 7.0f, float DomainWarpFraction = 0.22f) {
++	// Domain-warp the sample point before scoring against the ellipse, so the zone boundary
++	// reads as an irregular, organic sediment-facies edge instead of a mathematically perfect
++	// ellipse. Two independent noise samples (different offsets) avoid a simple radial wobble.
++	const float WarpAmpX = RadiusX * DomainWarpFraction;
++	const float WarpAmpY = RadiusY * DomainWarpFraction;
++	const float WarpedX = X + (RaycastValueNoise(X, Y, DomainWarpCellSize) - 0.5f) * 2.0f * WarpAmpX;
++	const float WarpedY = Y + (RaycastValueNoise(X + 91.7f, Y + 57.3f, DomainWarpCellSize) - 0.5f) * 2.0f * WarpAmpY;
++	const float Score = RaycastMadoReportEllipseScore(WarpedX, WarpedY, CenterX, CenterY, YawDeg, RadiusX, RadiusY);
++	return 1.0f - RaycastSmoothStep(0.35f, 1.60f, Score);
++}
++
++float RaycastBlendImpedance(float BaseZ, float TargetZ, float Weight, float Strength) {
++	return FMath::Lerp(BaseZ, TargetZ, FMath::Clamp(Weight * Strength, 0.0f, 1.0f));
++}
++
++// The actual field computation. Zone centers/radii, target impedances, blend strength, baseline
++// materials, and texture-noise parameters all come from GetActiveMadoSceneConfig() (MadoSceneConfig.h),
++// so a new scene variant is a JSON edit, not a rebuild.
++float RaycastMadoReportTerrainImpedanceAtClientXYImpl(float X, float Y, float GroundRangeM) {
++	const FMadoSceneConfig& Config = GetActiveMadoSceneConfig();
++
++	const float ActiveX = 1.0f - RaycastSmoothStep(Config.ActiveWindowXStart, Config.ActiveWindowXEnd, FMath::Abs(X));
++	const float ActiveY = 1.0f - RaycastSmoothStep(Config.ActiveWindowYStart, Config.ActiveWindowYEnd, FMath::Abs(Y));
++	const float ActiveWeight = FMath::Clamp(ActiveX * ActiveY, 0.0f, 1.0f);
++
++	float Z = FMath::Lerp(Config.BaselineMaterial.Impedance(), Config.SoftMudBaselineMaterial.Impedance(), ActiveWeight);
++	float MaxZoneWeight = ActiveWeight;
++
++	for (const FMadoFaciesZoneConfig& Zone : Config.FaciesZones) {
++		const float Weight = RaycastMadoZoneWeight(
++			X, Y, Zone.CenterX, Zone.CenterY, Zone.YawDeg, Zone.RadiusX, Zone.RadiusY,
++			Config.DomainWarpCellSizeM, Config.DomainWarpFractionOfRadius);
++		Z = RaycastBlendImpedance(Z, Zone.TargetMaterial.Impedance(), Weight, Config.BlendStrength);
++		MaxZoneWeight = FMath::Max(MaxZoneWeight, Weight);
++	}
++
++	// Two-octave smooth noise (fine mottling + coarser patchiness) for internal texture within a
++	// zone.
++	const FMadoTextureNoiseConfig& T = Config.TextureNoise;
++	const float FineNoise = RaycastValueNoise(X, Y, T.FineCellSizeM);
++	const float CoarseNoise = RaycastValueNoise(X * T.CoarseFreqScale + 13.0f, Y * T.CoarseFreqScale + 7.0f, T.CoarseCellSizeM);
++	const float TextureNoise = ((FineNoise * T.FineWeight + CoarseNoise * T.CoarseWeight) - 0.5f) * 2.0f;
++	// Near nadir (small ground range from the sensor track), the slant-range-to-ground-range
++	// mapping is nearly singular, so consecutive range bins jump across many texture-noise grid
++	// cells' worth of world distance; sampling a spatially-periodic noise field under that much
++	// foreshortening aliases into a "zone plate" concentric-ring pattern. Fading the texture
++	// amplitude out near nadir removes the ill-conditioned sampling regime; it also matches real
++	// SSS, where the near-nadir return is dominated by specular reflection, not fine texture.
++	const float NearNadirFade = RaycastSmoothStep(T.NearNadirFadeStartM, T.NearNadirFadeEndM, GroundRangeM);
++	const float TextureAmp = (T.AmpBase + T.AmpZoneWeightScale * FMath::Clamp(MaxZoneWeight, 0.0f, 1.0f)) * NearNadirFade;
++	Z *= 1.0f + TextureNoise * TextureAmp;
++
++	return Z;
++}
++
++} // namespace
++
++float UHolodeckRaycastSonar::GetFieldImpedanceAtLocation(
++	const FVector& ClientHitPoint,
++	float		   GroundRangeM) const {
++	// Only the Mado report/district facies field is implemented right now; GetActiveMadoSceneConfig()
++	// already resolves the correct scene from HOLOOCEAN_SHIPWRECK_SCENE_PRESET, so no per-scene
++	// branching is needed here even though this environment repo ships two scenes (District I/II).
++	return RaycastMadoReportTerrainImpedanceAtClientXYImpl(ClientHitPoint.X, ClientHitPoint.Y, GroundRangeM);
++}
++
+ 
+ FVector UHolodeckRaycastSonar::spherToEuc(
+ 	float	   r,
+@@ -347,6 +492,42 @@ SonarDetection UHolodeckRaycastSonar::ComputeDetection(
+ 	Detection.distance = HitInfo.Distance;
+ 	Detection.cos_inc_angle = FVector::DotProduct(VecInc, HitInfo.ImpactNormal);
+ 
++	// --- Acoustic material dispatch, in priority order -----------------------------
++	// Actor tags declare how a hit should be interpreted, so adding a new object
++	// category never requires editing this function (and thus never a rebuild).
++	//   "sssmat:<name>"  -> named material, resolved through materials.csv
++	//   "sssfacies"      -> impedance is a continuous function of position
++	//   (no tag)         -> stock behaviour: the mesh's own material asset name
++	const AActor* HitActor = HitInfo.GetActor();
++	if (HitActor != nullptr) {
++		static const FString MatTagPrefix(TEXT("sssmat:"));
++		for (const FName& Tag : HitActor->Tags) {
++			const FString TagStr = Tag.ToString();
++			if (TagStr.StartsWith(MatTagPrefix)) {
++				Detection.material_type = TagStr.RightChop(MatTagPrefix.Len());
++				return Detection;
++			}
++		}
++
++		if (HitActor->ActorHasTag(TEXT("sssfacies"))) {
++			const FVector ClientHitPoint = ConvertLinearVector(HitPoint, UEToClient);
++			const FVector ClientSensorPoint =
++				ConvertLinearVector(SensorTransf.GetLocation(), UEToClient);
++			const float GroundRangeM = FVector::Dist2D(ClientHitPoint, ClientSensorPoint);
++
++			const float FieldImpedance =
++				GetFieldImpedanceAtLocation(ClientHitPoint, GroundRangeM);
++			if (FieldImpedance > 0.0f) {
++				// Passed as a number, not encoded into the material name string: this
++				// runs once per ray (tens of thousands per ping).
++				Detection.impedance_override = FieldImpedance;
++				Detection.material_type = TEXT("SssFacies");
++				return Detection;
++			}
++			// Negative return = no field model compiled in; fall through.
++		}
++	}
++
+ 	UPrimitiveComponent* HitComponent = HitInfo.GetComponent();
+ 	if (HitComponent) {
+ 		int32				SectionIndex = 0;
+diff --git a/engine/Source/Holodeck/HolodeckCore/Private/MadoSceneConfig.cpp b/engine/Source/Holodeck/HolodeckCore/Private/MadoSceneConfig.cpp
+new file mode 100644
+index 00000000..487fb3b8
+--- /dev/null
++++ b/engine/Source/Holodeck/HolodeckCore/Private/MadoSceneConfig.cpp
+@@ -0,0 +1,370 @@
++// MIT License (c) 2026 see LICENSE file
++#include "MadoSceneConfig.h"
++#include "Holodeck.h"
++#include "Misc/FileHelper.h"
++#include "Misc/Paths.h"
++#include "Dom/JsonObject.h"
++#include "Serialization/JsonReader.h"
++#include "Serialization/JsonSerializer.h"
++
++namespace {
++
++float GetNum(const TSharedPtr<FJsonObject>& Obj, const TCHAR* Field, float Default) {
++	double Value = Default;
++	if (Obj.IsValid() && Obj->TryGetNumberField(Field, Value)) {
++		return static_cast<float>(Value);
++	}
++	return Default;
++}
++
++FString GetStr(const TSharedPtr<FJsonObject>& Obj, const TCHAR* Field, const FString& Default) {
++	FString Value;
++	if (Obj.IsValid() && Obj->TryGetStringField(Field, Value)) {
++		return Value;
++	}
++	return Default;
++}
++
++bool GetBool(const TSharedPtr<FJsonObject>& Obj, const TCHAR* Field, bool Default) {
++	bool Value = Default;
++	if (Obj.IsValid() && Obj->TryGetBoolField(Field, Value)) {
++		return Value;
++	}
++	return Default;
++}
++
++void GetPair(const TSharedPtr<FJsonObject>& Obj, const TCHAR* Field, float& OutA, float& OutB) {
++	const TArray<TSharedPtr<FJsonValue>>* Arr = nullptr;
++	if (Obj.IsValid() && Obj->TryGetArrayField(Field, Arr) && Arr && Arr->Num() >= 2) {
++		OutA = static_cast<float>((*Arr)[0]->AsNumber());
++		OutB = static_cast<float>((*Arr)[1]->AsNumber());
++	}
++}
++
++FMadoMaterialConfig ParseMaterial(const TSharedPtr<FJsonObject>& Obj, FMadoMaterialConfig Default) {
++	FMadoMaterialConfig Result = Default;
++	if (Obj.IsValid()) {
++		Result.DensityKgm3 = GetNum(Obj, TEXT("density_kgm3"), Default.DensityKgm3);
++		Result.SoundSpeedMps = GetNum(Obj, TEXT("sound_speed_mps"), Default.SoundSpeedMps);
++	}
++	return Result;
++}
++
++FMadoSceneConfig ParseSceneConfigJson(const FString& JsonText, const FString& SourcePath) {
++	FMadoSceneConfig Config;
++	TSharedPtr<FJsonObject>	   Root;
++	TSharedRef<TJsonReader<TCHAR>> Reader = TJsonReaderFactory<TCHAR>::Create(JsonText);
++	if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid()) {
++		UE_LOG(LogHolodeck, Warning, TEXT("MadoSceneConfig: failed to parse JSON at %s"), *SourcePath);
++		return Config;
++	}
++
++	Config.SceneName = GetStr(Root, TEXT("scene_name"), TEXT(""));
++	Config.SourceJsonPath = SourcePath;
++	Config.TerrainDataSource = GetStr(Root, TEXT("terrain_data_source"), TEXT(""));
++
++	const TSharedPtr<FJsonObject>* BaselineObj = nullptr;
++	if (Root->TryGetObjectField(TEXT("baseline_material"), BaselineObj)) {
++		Config.BaselineMaterial = ParseMaterial(*BaselineObj, Config.BaselineMaterial);
++	}
++	const TSharedPtr<FJsonObject>* SoftMudObj = nullptr;
++	if (Root->TryGetObjectField(TEXT("soft_mud_baseline_material"), SoftMudObj)) {
++		Config.SoftMudBaselineMaterial = ParseMaterial(*SoftMudObj, Config.SoftMudBaselineMaterial);
++	}
++
++	const TSharedPtr<FJsonObject>* ActiveWindowObj = nullptr;
++	if (Root->TryGetObjectField(TEXT("active_window"), ActiveWindowObj)) {
++		Config.ActiveWindowXStart = GetNum(*ActiveWindowObj, TEXT("x_falloff_start_m"), Config.ActiveWindowXStart);
++		Config.ActiveWindowXEnd = GetNum(*ActiveWindowObj, TEXT("x_falloff_end_m"), Config.ActiveWindowXEnd);
++		Config.ActiveWindowYStart = GetNum(*ActiveWindowObj, TEXT("y_falloff_start_m"), Config.ActiveWindowYStart);
++		Config.ActiveWindowYEnd = GetNum(*ActiveWindowObj, TEXT("y_falloff_end_m"), Config.ActiveWindowYEnd);
++	}
++
++	Config.BlendStrength = GetNum(Root, TEXT("blend_strength"), Config.BlendStrength);
++
++	const TSharedPtr<FJsonObject>* TextureNoiseObj = nullptr;
++	if (Root->TryGetObjectField(TEXT("texture_noise"), TextureNoiseObj)) {
++		FMadoTextureNoiseConfig& T = Config.TextureNoise;
++		T.FineCellSizeM = GetNum(*TextureNoiseObj, TEXT("fine_cell_size_m"), T.FineCellSizeM);
++		T.CoarseCellSizeM = GetNum(*TextureNoiseObj, TEXT("coarse_cell_size_m"), T.CoarseCellSizeM);
++		T.CoarseFreqScale = GetNum(*TextureNoiseObj, TEXT("coarse_freq_scale"), T.CoarseFreqScale);
++		T.FineWeight = GetNum(*TextureNoiseObj, TEXT("fine_weight"), T.FineWeight);
++		T.CoarseWeight = GetNum(*TextureNoiseObj, TEXT("coarse_weight"), T.CoarseWeight);
++		T.AmpBase = GetNum(*TextureNoiseObj, TEXT("amp_base"), T.AmpBase);
++		T.AmpZoneWeightScale = GetNum(*TextureNoiseObj, TEXT("amp_zone_weight_scale"), T.AmpZoneWeightScale);
++		T.NearNadirFadeStartM = GetNum(*TextureNoiseObj, TEXT("near_nadir_fade_start_m"), T.NearNadirFadeStartM);
++		T.NearNadirFadeEndM = GetNum(*TextureNoiseObj, TEXT("near_nadir_fade_end_m"), T.NearNadirFadeEndM);
++	}
++
++	Config.DomainWarpCellSizeM = GetNum(Root, TEXT("domain_warp_cell_size_m"), Config.DomainWarpCellSizeM);
++	Config.DomainWarpFractionOfRadius = GetNum(Root, TEXT("domain_warp_fraction_of_radius"), Config.DomainWarpFractionOfRadius);
++
++	const TArray<TSharedPtr<FJsonValue>>* ZonesArr = nullptr;
++	if (Root->TryGetArrayField(TEXT("facies_zones"), ZonesArr) && ZonesArr) {
++		for (const TSharedPtr<FJsonValue>& Item : *ZonesArr) {
++			const TSharedPtr<FJsonObject> ItemObj = Item->AsObject();
++			if (!ItemObj.IsValid()) {
++				continue;
++			}
++			FMadoFaciesZoneConfig Zone;
++			Zone.Id = GetStr(ItemObj, TEXT("id"), TEXT(""));
++			Zone.Evidence = GetStr(ItemObj, TEXT("evidence"), TEXT(""));
++			GetPair(ItemObj, TEXT("center_m"), Zone.CenterX, Zone.CenterY);
++			Zone.YawDeg = GetNum(ItemObj, TEXT("yaw_deg"), 0.0f);
++			GetPair(ItemObj, TEXT("radius_m"), Zone.RadiusX, Zone.RadiusY);
++			const TSharedPtr<FJsonObject>* TargetObj = nullptr;
++			if (ItemObj->TryGetObjectField(TEXT("target_material"), TargetObj)) {
++				Zone.TargetMaterial = ParseMaterial(*TargetObj, Zone.TargetMaterial);
++			}
++			Config.FaciesZones.Add(Zone);
++		}
++	}
++
++	const TArray<TSharedPtr<FJsonValue>>* StonesArr = nullptr;
++	if (Root->TryGetArrayField(TEXT("anchor_stones"), StonesArr) && StonesArr) {
++		for (const TSharedPtr<FJsonValue>& Item : *StonesArr) {
++			const TSharedPtr<FJsonObject> ItemObj = Item->AsObject();
++			if (!ItemObj.IsValid()) {
++				continue;
++			}
++			FMadoAnchorStoneConfig Stone;
++			Stone.Id = GetStr(ItemObj, TEXT("id"), TEXT(""));
++			GetPair(ItemObj, TEXT("center_m"), Stone.CenterX, Stone.CenterY);
++			Stone.YawDeg = GetNum(ItemObj, TEXT("yaw_deg"), 0.0f);
++			Stone.LengthCm = GetNum(ItemObj, TEXT("length_cm"), 0.0f);
++			Stone.WidthCm = GetNum(ItemObj, TEXT("width_cm"), 0.0f);
++			Stone.ThicknessCm = GetNum(ItemObj, TEXT("thickness_cm"), 0.0f);
++			Stone.RockType = GetStr(ItemObj, TEXT("rock_type"), TEXT(""));
++			Config.AnchorStones.Add(Stone);
++		}
++	}
++
++	const TArray<TSharedPtr<FJsonValue>>* ReefArr = nullptr;
++	if (Root->TryGetArrayField(TEXT("reef_edge_cues"), ReefArr) && ReefArr) {
++		for (const TSharedPtr<FJsonValue>& Item : *ReefArr) {
++			const TSharedPtr<FJsonObject> ItemObj = Item->AsObject();
++			if (!ItemObj.IsValid()) {
++				continue;
++			}
++			FMadoReefCueConfig Reef;
++			Reef.Id = GetStr(ItemObj, TEXT("id"), TEXT(""));
++			GetPair(ItemObj, TEXT("center_m"), Reef.CenterX, Reef.CenterY);
++			Reef.YawDeg = GetNum(ItemObj, TEXT("yaw_deg"), 0.0f);
++			Reef.LengthM = GetNum(ItemObj, TEXT("length_m"), 0.0f);
++			Reef.WidthM = GetNum(ItemObj, TEXT("width_m"), 0.0f);
++			Reef.ThicknessM = GetNum(ItemObj, TEXT("thickness_m"), 0.0f);
++			Config.ReefEdgeCues.Add(Reef);
++		}
++	}
++
++	const TArray<TSharedPtr<FJsonValue>>* WrecksArr = nullptr;
++	if (Root->TryGetArrayField(TEXT("wreck_spawns"), WrecksArr) && WrecksArr) {
++		for (const TSharedPtr<FJsonValue>& Item : *WrecksArr) {
++			const TSharedPtr<FJsonObject> ItemObj = Item->AsObject();
++			if (!ItemObj.IsValid()) {
++				continue;
++			}
++			FMadoWreckSpawnConfig Wreck;
++			Wreck.Id = GetStr(ItemObj, TEXT("id"), TEXT(""));
++			Wreck.Evidence = GetStr(ItemObj, TEXT("evidence"), TEXT(""));
++			GetPair(ItemObj, TEXT("center_m"), Wreck.CenterX, Wreck.CenterY);
++			Wreck.YawDeg = GetNum(ItemObj, TEXT("yaw_deg"), 0.0f);
++			Wreck.LengthM = GetNum(ItemObj, TEXT("length_m"), 1.0f);
++			Wreck.WidthM = GetNum(ItemObj, TEXT("width_m"), 1.0f);
++			Wreck.HeightM = GetNum(ItemObj, TEXT("height_m"), 1.0f);
++			Wreck.BurialFraction = FMath::Clamp(GetNum(ItemObj, TEXT("burial_fraction"), 0.0f), 0.0f, 1.0f);
++			Wreck.bScourPitEnabled = GetBool(ItemObj, TEXT("scour_pit_enabled"), false);
++			Wreck.ScourRadiusLengthMultiple = GetNum(ItemObj, TEXT("scour_radius_length_multiple"), Wreck.ScourRadiusLengthMultiple);
++			Wreck.ScourDepthM = GetNum(ItemObj, TEXT("scour_depth_m"), Wreck.ScourDepthM);
++			Config.WreckSpawns.Add(Wreck);
++		}
++	}
++
++	Config.bValid = true;
++	return Config;
++}
++
++// Resolves the env var value to an absolute JSON path, or empty if it doesn't name a Mado scene.
++FString ResolveConfigPath(const FString& PresetEnvValue) {
++	if (PresetEnvValue.IsEmpty()) {
++		return FString();
++	}
++	FString Candidate;
++	if (PresetEnvValue.EndsWith(TEXT(".json"), ESearchCase::IgnoreCase)) {
++		Candidate = PresetEnvValue;
++	} else if (
++		PresetEnvValue.Equals(TEXT("mado_report_environment_v1"), ESearchCase::IgnoreCase) ||
++		PresetEnvValue.Equals(TEXT("mado_report_environment_visual_debug_v1"), ESearchCase::IgnoreCase)) {
++		Candidate = TEXT("mado_report_environment_v1.json");
++	} else {
++		return FString();
++	}
++	if (FPaths::IsRelative(Candidate)) {
++		Candidate = FPaths::Combine(FPaths::ProjectContentDir(), TEXT("Config/mado_scenes"), Candidate);
++	}
++	return FPaths::ConvertRelativePathToFull(Candidate);
++}
++
++FString ResolveTerrainCsvPath(const FString& FileName) {
++	FString Candidate = FileName;
++	if (FPaths::IsRelative(Candidate)) {
++		Candidate = FPaths::Combine(FPaths::ProjectContentDir(), TEXT("Config/mado_terrain"), Candidate);
++	}
++	return FPaths::ConvertRelativePathToFull(Candidate);
++}
++
++// Parses a heightfield CSV written by generate_khoa_smooth_terrain_header_v2.py's
++// --out-smoothed-csv (header: ix,iy,x_m,y_m,depth_m,seabed_z_m; rows in raster order, iy outer /
++// ix inner). GridX is detected from where iy first changes, rather than trusting a declared
++// value, so a malformed/truncated file fails loudly instead of silently misreading the grid.
++bool LoadTerrainCsv(const FString& AbsPath, FMadoTerrainData& OutTerrain) {
++	FString FileText;
++	if (!FFileHelper::LoadFileToString(FileText, *AbsPath)) {
++		return false;
++	}
++	TArray<FString> Lines;
++	FileText.ParseIntoArrayLines(Lines);
++	if (Lines.Num() < 2) {
++		return false;
++	}
++
++	TArray<float> Xs, Ys, Depths;
++	Xs.Reserve(Lines.Num());
++	Ys.Reserve(Lines.Num());
++	Depths.Reserve(Lines.Num());
++	int32 GridXDetected = -1;
++	int32 FirstIy = -1;
++	for (int32 i = 1; i < Lines.Num(); ++i) {
++		TArray<FString> Cols;
++		Lines[i].ParseIntoArray(Cols, TEXT(","), true);
++		if (Cols.Num() < 5) {
++			continue;
++		}
++		const int32 Iy = FCString::Atoi(*Cols[1]);
++		if (FirstIy < 0) {
++			FirstIy = Iy;
++		} else if (GridXDetected < 0 && Iy != FirstIy) {
++			GridXDetected = Xs.Num();
++		}
++		Xs.Add(FCString::Atof(*Cols[2]));
++		Ys.Add(FCString::Atof(*Cols[3]));
++		Depths.Add(FCString::Atof(*Cols[4]));
++	}
++	if (GridXDetected <= 1 || Depths.Num() % GridXDetected != 0) {
++		return false;
++	}
++	const int32 GridYDetected = Depths.Num() / GridXDetected;
++
++	OutTerrain.GridX = GridXDetected;
++	OutTerrain.GridY = GridYDetected;
++	OutTerrain.DepthM = MoveTemp(Depths);
++	OutTerrain.XValues.SetNumUninitialized(GridXDetected);
++	for (int32 Ix = 0; Ix < GridXDetected; ++Ix) {
++		OutTerrain.XValues[Ix] = Xs[Ix];
++	}
++	OutTerrain.YValues.SetNumUninitialized(GridYDetected);
++	for (int32 Iy = 0; Iy < GridYDetected; ++Iy) {
++		OutTerrain.YValues[Iy] = Ys[Iy * GridXDetected];
++	}
++	OutTerrain.XMinM = OutTerrain.XValues[0];
++	OutTerrain.XMaxM = OutTerrain.XValues.Last();
++	OutTerrain.YMinM = OutTerrain.YValues[0];
++	OutTerrain.YMaxM = OutTerrain.YValues.Last();
++	float DMin = OutTerrain.DepthM[0];
++	float DMax = OutTerrain.DepthM[0];
++	for (const float D : OutTerrain.DepthM) {
++		DMin = FMath::Min(DMin, D);
++		DMax = FMath::Max(DMax, D);
++	}
++	OutTerrain.DepthMinM = DMin;
++	OutTerrain.DepthMaxM = DMax;
++	OutTerrain.bValid = true;
++	return true;
++}
++
++} // namespace
++
++const FMadoSceneConfig& GetActiveMadoSceneConfig() {
++	static const FMadoSceneConfig Config = []() {
++		const FString PresetEnvValue = FPlatformMisc::GetEnvironmentVariable(TEXT("HOLOOCEAN_SHIPWRECK_SCENE_PRESET"));
++		const FString ConfigPath = ResolveConfigPath(PresetEnvValue);
++		if (ConfigPath.IsEmpty()) {
++			return FMadoSceneConfig();
++		}
++		FString JsonText;
++		if (!FFileHelper::LoadFileToString(JsonText, *ConfigPath)) {
++			UE_LOG(LogHolodeck, Warning, TEXT("MadoSceneConfig: could not read config file %s (HOLOOCEAN_SHIPWRECK_SCENE_PRESET=%s)"), *ConfigPath, *PresetEnvValue);
++			return FMadoSceneConfig();
++		}
++		FMadoSceneConfig Parsed = ParseSceneConfigJson(JsonText, ConfigPath);
++		UE_LOG(
++			LogHolodeck,
++			Log,
++			TEXT("MadoSceneConfig: loaded '%s' from %s (zones=%d anchor_stones=%d reef_cues=%d wrecks=%d)"),
++			*Parsed.SceneName,
++			*ConfigPath,
++			Parsed.FaciesZones.Num(),
++			Parsed.AnchorStones.Num(),
++			Parsed.ReefEdgeCues.Num(),
++			Parsed.WreckSpawns.Num());
++		return Parsed;
++	}();
++	return Config;
++}
++
++bool IsMadoReportSceneActive() {
++	return GetActiveMadoSceneConfig().bValid;
++}
++
++float FMadoTerrainData::DepthAt(float X, float Y) const {
++	if (!bValid || GridX < 2 || GridY < 2) {
++		return 0.0f;
++	}
++	const float U = (X - XMinM) / (XMaxM - XMinM) * (GridX - 1);
++	const float V = (Y - YMinM) / (YMaxM - YMinM) * (GridY - 1);
++	const int32 Ix0 = FMath::Clamp(FMath::FloorToInt(U), 0, GridX - 2);
++	const int32 Iy0 = FMath::Clamp(FMath::FloorToInt(V), 0, GridY - 2);
++	const int32 Ix1 = Ix0 + 1;
++	const int32 Iy1 = Iy0 + 1;
++	const float Tx = FMath::Clamp(U - Ix0, 0.0f, 1.0f);
++	const float Ty = FMath::Clamp(V - Iy0, 0.0f, 1.0f);
++
++	const float D00 = DepthM[Iy0 * GridX + Ix0];
++	const float D10 = DepthM[Iy0 * GridX + Ix1];
++	const float D01 = DepthM[Iy1 * GridX + Ix0];
++	const float D11 = DepthM[Iy1 * GridX + Ix1];
++	const float D0 = FMath::Lerp(D00, D10, Tx);
++	const float D1 = FMath::Lerp(D01, D11, Tx);
++	return FMath::Lerp(D0, D1, Ty);
++}
++
++const FMadoTerrainData& GetActiveMadoTerrainData() {
++	static const FMadoTerrainData Terrain = []() {
++		FString FileName = TEXT("mado_report_environment_v1_terrain.csv");
++		const FMadoSceneConfig& SceneConfig = GetActiveMadoSceneConfig();
++		if (SceneConfig.bValid && !SceneConfig.TerrainDataSource.IsEmpty()) {
++			FileName = SceneConfig.TerrainDataSource;
++		}
++		const FString AbsPath = ResolveTerrainCsvPath(FileName);
++		FMadoTerrainData Data;
++		if (!LoadTerrainCsv(AbsPath, Data)) {
++			UE_LOG(LogHolodeck, Warning, TEXT("MadoTerrainData: failed to load terrain CSV %s (from '%s')"), *AbsPath, *FileName);
++		} else {
++			UE_LOG(
++				LogHolodeck,
++				Log,
++				TEXT("MadoTerrainData: loaded '%s' grid=%dx%d x=[%.2f,%.2f] y=[%.2f,%.2f] depth=[%.2f,%.2f]"),
++				*FileName,
++				Data.GridX,
++				Data.GridY,
++				Data.XMinM,
++				Data.XMaxM,
++				Data.YMinM,
++				Data.YMaxM,
++				Data.DepthMinM,
++				Data.DepthMaxM);
++		}
++		return Data;
++	}();
++	return Terrain;
++}
+diff --git a/engine/Source/Holodeck/HolodeckCore/Public/HolodeckRaycastSonar.h b/engine/Source/Holodeck/HolodeckCore/Public/HolodeckRaycastSonar.h
+index 299bcf84..f11f6cc4 100644
+--- a/engine/Source/Holodeck/HolodeckCore/Public/HolodeckRaycastSonar.h
++++ b/engine/Source/Holodeck/HolodeckCore/Public/HolodeckRaycastSonar.h
+@@ -136,6 +136,24 @@ protected:
+ 
+ 	FVector spherToEuc(float r, float theta, float phi, FTransform SensortoWorld);
+ 	SonarDetection ComputeDetection(FHitResult HitInfo, const FTransform& SensorTransf);
++
++	/**
++	 * Extension point for scenes whose acoustic material is a continuous function of
++	 * position rather than a per-mesh property — e.g. a seabed sediment-facies map
++	 * where mud/sand/gravel blend across space. A named material (materials.csv) cannot
++	 * express that, because UE assigns materials per mesh section.
++	 *
++	 * Called only for actors tagged "sssfacies" (see ComputeDetection). Coordinates are
++	 * in the client frame (metres). Return the acoustic impedance (density * sound speed)
++	 * at that point, or a negative value to fall back to the normal material lookup.
++	 *
++	 * The definition lives in the .cpp so the environment project can supply its own
++	 * facies model there. Without one it returns -1.0f and behaves like stock HoloOcean.
++	 */
++	virtual float GetFieldImpedanceAtLocation(
++		const FVector& ClientHitPoint,
++		float		   GroundRangeM) const;
++
+ 	virtual void ResetBuffer();
+ 
+ 	TArray<float>							  HorizontalAngles;
+diff --git a/engine/Source/Holodeck/HolodeckCore/Public/MadoSceneConfig.h b/engine/Source/Holodeck/HolodeckCore/Public/MadoSceneConfig.h
+new file mode 100644
+index 00000000..39525db4
+--- /dev/null
++++ b/engine/Source/Holodeck/HolodeckCore/Public/MadoSceneConfig.h
+@@ -0,0 +1,148 @@
++// Config-driven scene definition for the Mado report environment family. Facies zones, anchor
++// stones, reef cues, and wreck spawns used to be hardcoded C++ constants in HolodeckGameMode.cpp
++// / HolodeckRaycastSonar.cpp, which meant every new scene variant required a C++ patch + full UE
++// rebuild. This loads the same data from a JSON file at runtime instead, so new scene variants
++// (or parameter sweeps of an existing one) are a JSON edit + engine restart, not a rebuild.
++#pragma once
++#include "CoreMinimal.h"
++
++struct FMadoMaterialConfig {
++	float DensityKgm3 = 1298.0f;
++	float SoundSpeedMps = 1564.0f;
++	float Impedance() const { return DensityKgm3 * SoundSpeedMps; }
++};
++
++struct FMadoFaciesZoneConfig {
++	FString			   Id;
++	FString			   Evidence;
++	float			   CenterX = 0.0f;
++	float			   CenterY = 0.0f;
++	float			   YawDeg = 0.0f;
++	float			   RadiusX = 1.0f;
++	float			   RadiusY = 1.0f;
++	FMadoMaterialConfig TargetMaterial;
++};
++
++struct FMadoAnchorStoneConfig {
++	FString Id;
++	float	CenterX = 0.0f;
++	float	CenterY = 0.0f;
++	float	YawDeg = 0.0f;
++	float	LengthCm = 0.0f;
++	float	WidthCm = 0.0f;
++	float	ThicknessCm = 0.0f;
++	FString RockType;
++};
++
++struct FMadoReefCueConfig {
++	FString Id;
++	float	CenterX = 0.0f;
++	float	CenterY = 0.0f;
++	float	YawDeg = 0.0f;
++	float	LengthM = 0.0f;
++	float	WidthM = 0.0f;
++	float	ThicknessM = 0.0f;
++};
++
++// Placement/burial parameters for a wreck actor. The 3D mesh asset itself is out of scope here
++// (SSS-team / modeling responsibility) -- this only controls where and how it sits relative to
++// the seafloor, which is squarely environment-authoring scope.
++struct FMadoWreckSpawnConfig {
++	FString Id;
++	FString Evidence;
++	float	CenterX = 0.0f;
++	float	CenterY = 0.0f;
++	float	YawDeg = 0.0f;
++	float	LengthM = 1.0f;
++	float	WidthM = 1.0f;
++	float	HeightM = 1.0f;
++	// 0 = fully proud of the seafloor, 1 = fully buried (top flush with surrounding grade).
++	float BurialFraction = 0.0f;
++	bool  bScourPitEnabled = false;
++	// Scour pit radius as a multiple of the hull length, and max depth in meters, only used if
++	// bScourPitEnabled.
++	float ScourRadiusLengthMultiple = 1.4f;
++	float ScourDepthM = 0.15f;
++};
++
++struct FMadoTextureNoiseConfig {
++	float FineCellSizeM = 0.3f;
++	float CoarseCellSizeM = 0.3f;
++	float CoarseFreqScale = 0.3f;
++	float FineWeight = 0.6f;
++	float CoarseWeight = 0.4f;
++	float AmpBase = 0.03f;
++	float AmpZoneWeightScale = 0.05f;
++	float NearNadirFadeStartM = 0.0f;
++	float NearNadirFadeEndM = 5.0f;
++};
++
++struct FMadoSceneConfig {
++	bool	bValid = false;
++	FString SceneName;
++	FString SourceJsonPath;
++
++	FMadoMaterialConfig BaselineMaterial;
++	FMadoMaterialConfig SoftMudBaselineMaterial;
++
++	float ActiveWindowXStart = 60.0f;
++	float ActiveWindowXEnd = 72.0f;
++	float ActiveWindowYStart = 50.0f;
++	float ActiveWindowYEnd = 62.0f;
++
++	float BlendStrength = 0.35f;
++
++	FMadoTextureNoiseConfig TextureNoise;
++	float					DomainWarpCellSizeM = 7.0f;
++	float					DomainWarpFractionOfRadius = 0.22f;
++
++	// Filename of a heightfield CSV under Content/Config/mado_terrain/ (see FMadoTerrainData).
++	// Empty/unrecognized falls back to mado_report_environment_v1_terrain.csv for backward
++	// compatibility with callers that request khoa terrain-following without an active scene.
++	FString TerrainDataSource;
++
++	TArray<FMadoFaciesZoneConfig>  FaciesZones;
++	TArray<FMadoAnchorStoneConfig> AnchorStones;
++	TArray<FMadoReefCueConfig>	    ReefEdgeCues;
++	TArray<FMadoWreckSpawnConfig>  WreckSpawns;
++};
++
++// Loaded from a Content/Config/mado_terrain/*.csv heightfield (columns: ix,iy,x_m,y_m,depth_m,
++// seabed_z_m; rows in raster order, iy outer / ix inner -- see
++// 04_code/environment_data/generate_khoa_smooth_terrain_header_v2.py's --out-smoothed-csv output,
++// which is exactly this format). Replaces the old compiled ShipwreckKhoaSmoothTerrainData.generated.h
++// so a new site's terrain is a data file, not a C++ rebuild.
++struct FMadoTerrainData {
++	bool  bValid = false;
++	int32 GridX = 0;
++	int32 GridY = 0;
++	float XMinM = 0.0f;
++	float XMaxM = 0.0f;
++	float YMinM = 0.0f;
++	float YMaxM = 0.0f;
++	float DepthMinM = 0.0f;
++	float DepthMaxM = 0.0f;
++	TArray<float> XValues;
++	TArray<float> YValues;
++	TArray<float> DepthM; // row-major, index = iy * GridX + ix
++
++	// Bilinear-sampled water depth (positive, meters) at local (X, Y). Mirrors the sampling math
++	// previously inlined in HolodeckGameMode.cpp::ShipwreckProjectKhoaDepthAt exactly.
++	float DepthAt(float X, float Y) const;
++};
++
++// Resolves HOLOOCEAN_SHIPWRECK_SCENE_PRESET to a concrete config and caches it (loaded once per
++// process). If the env var value ends in ".json" it is treated as a config file path (relative
++// to Content/Config/mado_scenes/ unless absolute); otherwise "mado_report_environment_v1" /
++// "mado_report_environment_visual_debug_v1" resolve to the bundled default JSON of the same
++// name, so existing capture scripts that pass the preset name keep working unchanged.
++const FMadoSceneConfig& GetActiveMadoSceneConfig();
++
++// True if the resolved config loaded successfully (i.e. some Mado report scene is active).
++bool IsMadoReportSceneActive();
++
++// Resolves and caches (once per process) the terrain heightfield to use: the active scene's
++// "terrain_data_source" JSON field if a scene is active and sets one, otherwise
++// mado_report_environment_v1_terrain.csv (matches the old hardcoded-header behavior, so any
++// caller using khoa terrain-following without an active Mado scene is unaffected).
++const FMadoTerrainData& GetActiveMadoTerrainData();
+diff --git a/engine/Source/Holodeck/Sensors/Private/RaycastSidescanSonar.cpp b/engine/Source/Holodeck/Sensors/Private/RaycastSidescanSonar.cpp
+index d8daf1e2..879759b6 100644
+--- a/engine/Source/Holodeck/Sensors/Private/RaycastSidescanSonar.cpp
++++ b/engine/Source/Holodeck/Sensors/Private/RaycastSidescanSonar.cpp
+@@ -3,6 +3,102 @@
+ 
+ #include "Holodeck.h"
+ #include "Benchmarker.h"
++
++#include <atomic>
++#include <cmath>
++
++namespace {
++	uint32 MixBits(uint32 X) {
++		X ^= X >> 16;
++		X *= 0x7feb352du;
++		X ^= X >> 15;
++		X *= 0x846ca68bu;
++		X ^= X >> 16;
++		return X;
++	}
++
++	uint32 LatticeHash(int32 X, int32 Y, int32 Z, uint32 Seed, uint32 Stream) {
++		uint32 H = MixBits(Seed ^ Stream);
++		H = MixBits(H ^ static_cast<uint32>(X) * 0x9e3779b9u);
++		H = MixBits(H ^ static_cast<uint32>(Y) * 0x85ebca6bu);
++		return MixBits(H ^ static_cast<uint32>(Z) * 0xc2b2ae35u);
++	}
++
++	float HashUniformOpen(uint32 H) {
++		// Map 24 useful hash bits to the open interval (0,1), avoiding log(0).
++		return (static_cast<float>((MixBits(H) >> 8) + 1u)) / 16777217.0f;
++	}
++
++	void HashNormalPair(uint32 H, float& OutA, float& OutB) {
++		const float U1 = HashUniformOpen(H);
++		const float U2 = HashUniformOpen(H ^ 0xa511e9b3u);
++		const float R = FMath::Sqrt(-2.0f * FMath::Loge(U1));
++		const float P = 2.0f * PI * U2;
++		OutA = R * FMath::Cos(P);
++		OutB = R * FMath::Sin(P);
++	}
++
++	float SmoothWeight(float T) {
++		T = FMath::Clamp(T, 0.0f, 1.0f);
++		return T * T * (3.0f - 2.0f * T);
++	}
++
++	float GammaUnitSample(float Shape, uint32 Seed) {
++		if (!(Shape > 0.0f)) {
++			return 1.0f;
++		}
++		FRandomStream Rng(static_cast<int32>(Seed));
++		auto NormalDraw = [&Rng]() {
++			const float U1 = FMath::Clamp(Rng.FRand(), 1e-7f, 1.0f);
++			const float U2 = Rng.FRand();
++			return FMath::Sqrt(-2.0f * FMath::Loge(U1))
++				 * FMath::Cos(2.0f * PI * U2);
++		};
++
++		float Boost = 1.0f;
++		float K = Shape;
++		if (K < 1.0f) {
++			const float U = FMath::Clamp(Rng.FRand(), 1e-7f, 1.0f);
++			Boost = FMath::Pow(U, 1.0f / K);
++			K += 1.0f;
++		}
++		const float D = K - 1.0f / 3.0f;
++		const float C = 1.0f / FMath::Sqrt(9.0f * D);
++		for (int Attempt = 0; Attempt < 64; ++Attempt) {
++			const float X = NormalDraw();
++			const float OnePlus = 1.0f + C * X;
++			if (OnePlus <= 0.0f) {
++				continue;
++			}
++			const float V = OnePlus * OnePlus * OnePlus;
++			const float U = FMath::Clamp(Rng.FRand(), 1e-7f, 1.0f);
++			if (U < 1.0f - 0.0331f * X * X * X * X
++				|| FMath::Loge(U) < 0.5f * X * X + D * (1.0f - V + FMath::Loge(V))) {
++				// Gamma(K,1), adjusted for K<1, then divided by original shape:
++				// unit mean and variance 1/Shape.
++				return FMath::Max(0.0f, D * V * Boost / Shape);
++			}
++		}
++		return 1.0f;
++	}
++} // namespace
++
++/**
++ * 최종 bin 값을 만드는 방식의 식별자. 실행 로그와 산출물 메타데이터에 남겨
++ * "이 데이터가 어느 구조로 찍혔는지"를 나중에도 복원할 수 있게 한다.
++ *
++ *   split-halves-v0  두 내부 반쪽에 각각 speckle+noise 를 적용하고 클라이언트가 합산
++ *                    (~2026-08-08. 선형 평균 2배, CV 가 모델값의 1/sqrt(2))
++ *   fused-bin-v1     두 반쪽의 sum/count 를 먼저 합쳐 I0 를 만들고
++ *                    I_final = I0 * F + N 로 scalar-domain noise 를 적용
++ *   complex-power-v2 같은 fused I0 에 대해 coherent complex field 를 만들고
++ *                    I_signal = I0 * |sqrt(1-s)+sqrt(s)G|^2 로 power 검파.
++ *                    수신기 잡음은 전송손실 뒤 Python 후처리에서 복소 합산한다.
++ *   coherent-field-v3 레이 교점마다 world-anchored rough-surface complex
++ *                    baseband envelope를 만들고 bin 안에서 복소 합산한다.
++ *                    엔진은 pre-propagation I/Q를 출력하고 Python이 TL, receiver
++ *                    noise, chirp matched filter, square-law detection을 순서대로 수행.
++ */
+ #include "HolodeckBuoyantAgent.h"
+ URaycastSidescanSonar::URaycastSidescanSonar() {
+ 	SensorName = "RaycastSidescanSonar";
+@@ -34,6 +130,17 @@ void URaycastSidescanSonar::ParseSensorParms(FString ParmsJson) {
+ 	TSharedRef<TJsonReader<TCHAR>> JsonReader =
+ 		TJsonReaderFactory<TCHAR>::Create(ParmsJson);
+ 	if (FJsonSerializer::Deserialize(JsonReader, JsonParsed)) {
++		VerticalBeamwidthDeg = Elevation;
++		if (JsonParsed->HasTypedField<EJson::Number>("VerticalBeamwidthDeg")) {
++			VerticalBeamwidthDeg =
++				static_cast<float>(JsonParsed->GetNumberField("VerticalBeamwidthDeg"));
++		}
++		if (!(VerticalBeamwidthDeg > 0.0f) || VerticalBeamwidthDeg > 180.0f) {
++			UE_LOG(
++				LogHolodeck,
++				Fatal,
++				TEXT("URaycastSidescanSonar: VerticalBeamwidthDeg must be in (0,180]."));
++		}
+ 		if (JsonParsed->HasTypedField<EJson::Number>("RangeRes")) {
+ 			RangeRes = JsonParsed->GetNumberField("RangeRes") * 100; // m to cm
+ 		} else {
+@@ -43,28 +150,88 @@ void URaycastSidescanSonar::ParseSensorParms(FString ParmsJson) {
+ 				TEXT(
+ 					"URaycastSidescanSonar::ParseSensorParms:: Missing configuration for 'RangeRes'."));
+ 		}
+-		// Noise Params
++		// Legacy engine-side additive noise. It used to add a positive Rayleigh draw
++		// directly to power before transmission loss, which is dimensionally wrong and
++		// becomes a range-independent floor after TVG. Keep parsing the key so existing
++		// scenarios load, but receiver noise is now applied after propagation in the
++		// Python processing stage as complex Gaussian noise power.
+ 		if (JsonParsed->HasTypedField<EJson::Number>("AddSigma")) {
+-			addNoise.initSigma(JsonParsed->GetNumberField("AddSigma"));
++			LegacyAddSigma = JsonParsed->GetNumberField("AddSigma");
+ 		} else if (JsonParsed->HasTypedField<EJson::Number>("AddCov")) {
+-			addNoise.initCov(JsonParsed->GetNumberField("AddCov"));
+-		} else {
++			LegacyAddSigma = FMath::Sqrt(
++				FMath::Max(0.0, JsonParsed->GetNumberField("AddCov")));
++		}
++		if (JsonParsed->HasTypedField<EJson::Number>("SpeckleStrength")) {
++			SpeckleStrength = JsonParsed->GetNumberField("SpeckleStrength");
++			if (SpeckleStrength < 0.0f || SpeckleStrength > 1.0f) {
++				UE_LOG(
++					LogHolodeck,
++					Fatal,
++					TEXT("URaycastSidescanSonar: SpeckleStrength must be in [0,1], got %.6g."),
++					SpeckleStrength);
++			}
++		}
++		if (JsonParsed->HasTypedField<EJson::String>("SignalModel")) {
++			const FString M = JsonParsed->GetStringField("SignalModel").ToLower();
++			if (M == TEXT("coherent") || M == TEXT("coherent_field")
++				|| M == TEXT("coherent-field-v3") || M == TEXT("coherent-cell-v3.1")) {
++				SignalModel = ESSSSignalModel::CoherentField;
++			} else if (M == TEXT("intensity") || M == TEXT("complex_power")
++					   || M == TEXT("complex-power-v2")) {
++				SignalModel = ESSSSignalModel::Intensity;
++			} else {
++				UE_LOG(
++					LogHolodeck,
++					Fatal,
++					TEXT("URaycastSidescanSonar: unknown SignalModel '%s'. "
++						 "Use 'coherent' or 'intensity'."),
++					*M);
++			}
++		}
++		if (JsonParsed->HasTypedField<EJson::Number>("FrequencyKhz")) {
++			CarrierFrequencyHz =
++				static_cast<float>(JsonParsed->GetNumberField("FrequencyKhz") * 1000.0);
++		}
++		if (!(CarrierFrequencyHz > 0.0f)) {
+ 			UE_LOG(
+ 				LogHolodeck,
+ 				Fatal,
+-				TEXT(
+-					"URaycastSidescanSonar::ParseSensorParms:: Missing configuration for either 'AddSigma' or 'AddCov'."));
++				TEXT("URaycastSidescanSonar: FrequencyKhz must be positive."));
+ 		}
+-		if (JsonParsed->HasTypedField<EJson::Number>("MultSigma")) {
+-			multNoise.initSigma(JsonParsed->GetNumberField("MultSigma"));
+-		} else if (JsonParsed->HasTypedField<EJson::Number>("MultCov")) {
+-			multNoise.initCov(JsonParsed->GetNumberField("MultCov"));
+-		} else {
++		if (JsonParsed->HasTypedField<EJson::Number>("ScatterCorrelationLengthM")) {
++			ScatterCorrelationLengthCm = static_cast<float>(
++				JsonParsed->GetNumberField("ScatterCorrelationLengthM") * 100.0);
++		}
++		if (!(ScatterCorrelationLengthCm > 0.0f)) {
+ 			UE_LOG(
+ 				LogHolodeck,
+ 				Fatal,
+-				TEXT(
+-					"URaycastSidescanSonar::ParseSensorParms:: Missing configuration for either 'MultSigma' or 'MultCov'."));
++				TEXT("URaycastSidescanSonar: ScatterCorrelationLengthM must be positive."));
++		}
++		if (JsonParsed->HasTypedField<EJson::Number>("TextureShape")) {
++			TextureShape = JsonParsed->GetNumberField("TextureShape");
++		}
++		if (TextureShape < 0.0f) {
++			UE_LOG(
++				LogHolodeck,
++				Fatal,
++				TEXT("URaycastSidescanSonar: TextureShape must be >= 0 (0 disables texture)."));
++		}
++		if (JsonParsed->HasTypedField<EJson::Number>("TextureCorrelationLengthM")) {
++			TextureCorrelationLengthCm = static_cast<float>(
++				JsonParsed->GetNumberField("TextureCorrelationLengthM") * 100.0);
++		}
++		if (!(TextureCorrelationLengthCm > 0.0f)) {
++			UE_LOG(
++				LogHolodeck,
++				Fatal,
++				TEXT("URaycastSidescanSonar: TextureCorrelationLengthM must be positive."));
++		}
++		if (JsonParsed->HasTypedField<EJson::Number>("MultSigma")) {
++			MultSigmaValue = JsonParsed->GetNumberField("MultSigma");
++		} else if (JsonParsed->HasTypedField<EJson::Number>("MultCov")) {
++			MultSigmaValue = FMath::Sqrt(
++				FMath::Max(0.0, JsonParsed->GetNumberField("MultCov")));
+ 		}
+ 		if (JsonParsed->HasTypedField<EJson::Number>("AzimuthRayCount")) {
+ 			AzimuthRayCount = JsonParsed->GetIntegerField("AzimuthRayCount");
+@@ -102,6 +269,86 @@ void URaycastSidescanSonar::ParseSensorParms(FString ParmsJson) {
+ 				TEXT(
+ 					"URaycastSidescanSonar::ParseSensorParms:: Missing configuration for 'ElevationRayRes'."));
+ 		}
++		// Optional: apply transducer beam directivity per ray (default off).
++		if (JsonParsed->HasTypedField<EJson::Boolean>("BeamPattern")) {
++			UseBeamPattern = JsonParsed->GetBoolField("BeamPattern");
++		}
++		// Opt-in ablation switches. Defaults preserve coherent-cell-v3.1.
++		if (JsonParsed->HasTypedField<EJson::Boolean>("IncidenceCosine")) {
++			UseIncidenceCosine = JsonParsed->GetBoolField("IncidenceCosine");
++		}
++		if (JsonParsed->HasTypedField<EJson::String>("SpeckleSpatialMode")) {
++			const FString Mode =
++				JsonParsed->GetStringField("SpeckleSpatialMode").ToLower();
++			if (Mode == TEXT("world") || Mode == TEXT("world_anchored")) {
++				UseWorldAnchoredSpeckle = true;
++			} else if (Mode == TEXT("independent") || Mode == TEXT("random")) {
++				UseWorldAnchoredSpeckle = false;
++			} else {
++				UE_LOG(
++					LogHolodeck,
++					Fatal,
++					TEXT("URaycastSidescanSonar: unknown SpeckleSpatialMode '%s'. "
++						 "Use 'world' or 'independent'."),
++					*Mode);
++			}
++		}
++		// Generic coherent-scattering model. `exponential` remains a descriptive alias:
++		// fully diffuse complex Gaussian field followed by |Z|^2 is exponential power.
++		// Legacy `rayleigh` is accepted only as a migration alias; it no longer selects
++		// the physically inconsistent amplitude factor.
++		//
++		// Unknown strings are a hard error rather than a silent fallback: a typo here
++		// would otherwise produce a whole dataset under the wrong model with no sign
++		// of it, and the resulting images look plausible either way.
++		if (JsonParsed->HasTypedField<EJson::String>("SpeckleDistribution")) {
++			const FString D = JsonParsed->GetStringField("SpeckleDistribution").ToLower();
++			if (D == TEXT("complex_gaussian") || D == TEXT("complex")) {
++				SpeckleDist = ESpeckleDistribution::ComplexGaussian;
++			} else if (D == TEXT("exponential")) {
++				SpeckleDist = ESpeckleDistribution::ComplexGaussian;
++				SpeckleStrength = 1.0f;
++			} else if (D == TEXT("rayleigh")) {
++				SpeckleDist = ESpeckleDistribution::ComplexGaussian;
++				UE_LOG(
++					LogHolodeck,
++					Warning,
++					TEXT("URaycastSidescanSonar: SpeckleDistribution='rayleigh' is "
++						 "deprecated; using complex_gaussian detected power."));
++			} else if (D == TEXT("off") || D == TEXT("none")) {
++				SpeckleDist = ESpeckleDistribution::Off;
++			} else {
++				UE_LOG(
++					LogHolodeck,
++					Fatal,
++					TEXT("URaycastSidescanSonar: unknown SpeckleDistribution '%s'. "
++						 "Use 'complex_gaussian' or 'off'."),
++					*D);
++			}
++		}
++		// Speckle RNG seed. 0 = a fresh random seed for each sensor construction.
++		// Any non-zero value makes the run reproducible.
++		if (JsonParsed->HasTypedField<EJson::Number>("SpeckleSeed")) {
++			SpeckleSeed = JsonParsed->GetIntegerField("SpeckleSeed");
++		}
++		if (SpeckleSeed != 0) {
++			SpeckleStream.Initialize(SpeckleSeed);
++		} else {
++			SpeckleStream.GenerateNewSeed();
++		}
++		ResolvedScatterSeed = static_cast<uint32>(SpeckleStream.GetInitialSeed());
++		// Optional: second-bounce (multipath) echoes (default off). Same key name as
++		// ImagingSonar so a scenario config reads the same for either sensor.
++		if (JsonParsed->HasTypedField<EJson::Boolean>("MultiPath")) {
++			UseMultipath = JsonParsed->GetBoolField("MultiPath");
++		}
++		// Optional: binary ground-truth label channel (default off).
++		if (JsonParsed->HasTypedField<EJson::Boolean>("SemanticLabels")) {
++			UseSemanticLabels = JsonParsed->GetBoolField("SemanticLabels");
++		}
++		if (JsonParsed->HasTypedField<EJson::String>("LabelTag")) {
++			LabelTag = FName(*JsonParsed->GetStringField("LabelTag"));
++		}
+ 	} else {
+ 		UE_LOG(
+ 			LogHolodeck,
+@@ -121,6 +368,30 @@ void URaycastSidescanSonar::InitializeSensor() {
+ 
+ 	Parent = TUniquePtr<AActor>(this->GetAttachmentRootActor());
+ 	FillAngleArrays();
++
++	// The selected model must be visible in the run log. A dataset acquired under the
++	// wrong speckle mode is indistinguishable by eye, so "which one did this run use"
++	// has to be recoverable from the artefacts alone.
++	UE_LOG(
++		LogHolodeck,
++		Log,
++		TEXT("[speckle] signal=%s distribution=%s strength=%.3f seed=%d resolved=%u "
++			 "f=%.1fkHz corr=%.4fm texture_shape=%.3f texture_corr=%.3fm "
++			 "legacy_addsigma=%.3g(ignored) multsigma=%.3f(ignored) binmodel=%s"),
++		SignalModelName(),
++		SpeckleDistName(),
++		SpeckleStrength,
++		SpeckleSeed,
++		ResolvedScatterSeed,
++		CarrierFrequencyHz / 1000.0f,
++		ScatterCorrelationLengthCm / 100.0f,
++		TextureShape,
++		TextureCorrelationLengthCm / 100.0f,
++		LegacyAddSigma,
++		MultSigmaValue,
++		SignalModel == ESSSSignalModel::CoherentField
++			? TEXT("coherent-cell-v3.1")
++			: TEXT("complex-power-v2"));
+ }
+ 
+ int min(int a, int b) {
+@@ -148,27 +419,80 @@ void URaycastSidescanSonar::FillAngleArrays() {
+ 		VerticalAngles.Add(maxElev);
+ 	}
+ 	Hists.Empty(ElevationRayCount);
+-	// leftHists.Empty(ElevationRayCount);
++	leftHists.Empty(ElevationRayCount);
++	coherentRealHists.Empty(ElevationRayCount);
++	coherentImagHists.Empty(ElevationRayCount);
++	coherentZHists.Empty(ElevationRayCount);
++	leftCoherentRealHists.Empty(ElevationRayCount);
++	leftCoherentImagHists.Empty(ElevationRayCount);
++	leftCoherentZHists.Empty(ElevationRayCount);
++	labelHists.Empty(ElevationRayCount);
++	leftLabelHists.Empty(ElevationRayCount);
+ 
+ 	for (int i = 0; i < ElevationRayCount; i++) {
+ 		Hists.Emplace(bh::axis::regular<>(RangeBins, RangeMin, RangeMax));
+-		// leftHists.Emplace(bh::axis::regular<>(RangeBins, RangeMin, RangeMax));
++		leftHists.Emplace(bh::axis::regular<>(RangeBins, RangeMin, RangeMax));
++		if (SignalModel == ESSSSignalModel::CoherentField) {
++			coherentRealHists.Emplace(
++				bh::axis::regular<>(RangeBins, RangeMin, RangeMax));
++			coherentImagHists.Emplace(
++				bh::axis::regular<>(RangeBins, RangeMin, RangeMax));
++			coherentZHists.Emplace(
++				bh::axis::regular<>(RangeBins, RangeMin, RangeMax));
++			leftCoherentRealHists.Emplace(
++				bh::axis::regular<>(RangeBins, RangeMin, RangeMax));
++			leftCoherentImagHists.Emplace(
++				bh::axis::regular<>(RangeBins, RangeMin, RangeMax));
++			leftCoherentZHists.Emplace(
++				bh::axis::regular<>(RangeBins, RangeMin, RangeMax));
++		}
++		if (UseSemanticLabels) {
++			labelHists.Emplace(bh::axis::regular<>(RangeBins, RangeMin, RangeMax));
++			leftLabelHists.Emplace(bh::axis::regular<>(RangeBins, RangeMin, RangeMax));
++		}
+ 	}
+ }
+ 
+ void URaycastSidescanSonar::ResetBuffer() {
+ 	// Reset the histogram buffer
+ 	float* result = static_cast<float*>(Buffer);
+-	// std::fill(result, result + RangeBins * 2, 0);
+-	std::fill(result, result + RangeBins, 0);
++	std::fill(result, result + GetNumItems(), 0);
+ 
+ 	ParallelFor(Hists.Num(), [&](int32 i) {
+ 		for (auto& cell : Hists[i]) {
+ 			cell.clear();
+ 		}
+-		// for (auto& cell : leftHists[i]) {
+-		// 	cell.clear();
+-		// }
++		for (auto& cell : leftHists[i]) {
++			cell.clear();
++		}
++		if (SignalModel == ESSSSignalModel::CoherentField) {
++			for (auto& cell : coherentRealHists[i]) {
++				cell.clear();
++			}
++			for (auto& cell : coherentImagHists[i]) {
++				cell.clear();
++			}
++			for (auto& cell : coherentZHists[i]) {
++				cell.clear();
++			}
++			for (auto& cell : leftCoherentRealHists[i]) {
++				cell.clear();
++			}
++			for (auto& cell : leftCoherentImagHists[i]) {
++				cell.clear();
++			}
++			for (auto& cell : leftCoherentZHists[i]) {
++				cell.clear();
++			}
++		}
++		if (UseSemanticLabels) {
++			for (auto& cell : labelHists[i]) {
++				cell.clear();
++			}
++			for (auto& cell : leftLabelHists[i]) {
++				cell.clear();
++			}
++		}
+ 	});
+ }
+ 
+@@ -178,7 +502,9 @@ SonarDetection URaycastSidescanSonar::ShootRay(
+ 	const FTransform&	   ActorTransf,
+ 	const FVector&		   SonarBodyLoc,
+ 	const FRotator&		   SonarBodyRot,
+-	FCollisionQueryParams& TraceParams) {
++	FCollisionQueryParams& TraceParams,
++	MultipathEcho*		   OutMultipath,
++	FVector*			   OutHitPoint) {
+ 	// TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("RaycastSidescanSonar::ShootRay"));
+ 	static thread_local FHitResult HitInfo(ForceInit);
+ 	HitInfo.Reset();
+@@ -214,35 +540,176 @@ SonarDetection URaycastSidescanSonar::ShootRay(
+ 	}
+ 
+ 	if (HitInfo.bBlockingHit) {
++		if (OutHitPoint != nullptr) {
++			*OutHitPoint = HitInfo.ImpactPoint;
++		}
+ 		if (ViewPoints) {
+ 			PointsToDraw.Enqueue(HitInfo.ImpactPoint);
+ 		}
+-		return ComputeDetection(HitInfo, ActorTransf);
++		// Material dispatch (including the "sssmat:" / "sssfacies" actor tags) is handled
++		// centrally in UHolodeckRaycastSonar::ComputeDetection so every raycast sonar
++		// shares it, not just this one.
++		SonarDetection Detection = ComputeDetection(HitInfo, ActorTransf);
++		if (UseSemanticLabels) {
++			// Ground-truth: did this ray land on an actor tagged as a target?
++			const AActor* HitActor = HitInfo.GetActor();
++			Detection.is_target = (HitActor != nullptr) && HitActor->ActorHasTag(LabelTag);
++		}
++		if (OutMultipath != nullptr) {
++			TraceMultipath(
++				HitInfo,
++				Detection,
++				ActorTransf,
++				SonarBodyLoc,
++				SonarBodyRot,
++				TraceParams,
++				*OutMultipath);
++		}
++		return Detection;
+ 	} else {
++		if (OutHitPoint != nullptr) {
++			*OutHitPoint = FVector::ZeroVector;
++		}
+ 		return SonarDetection(0, 0, TEXT(""));
+ 	}
+ }
+ 
++void URaycastSidescanSonar::TraceMultipath(
++	const FHitResult&	   FirstHit,
++	const SonarDetection&  FirstDetection,
++	const FTransform&	   ActorTransf,
++	const FVector&		   SonarBodyLoc,
++	const FRotator&		   SonarBodyRot,
++	FCollisionQueryParams& TraceParams,
++	MultipathEcho&		   Out) {
++	Out = MultipathEcho();
++
++	// Symbols follow Algorithm 1 of the HoloOcean sonar paper (sec. III-B):
++	//   p_B, n_B : first bounce point and its surface normal   -> P1, N1
++	//   r_B      : specular reflection of the incident ray at B -> RB
++	//   p, n_H   : second bounce point and its surface normal   -> P2, N2
++	//   q        : r_B specularly reflected again at H          -> Q
++	//   v_H      : unit vector from H back to the sonar         -> VH
++	//   i        : q . v_H, the fraction that heads home        -> Align
++	//   d        : (|p_B| + |p| + |p_B - p|) / 2                -> Reported
++	const FVector P1 = FirstHit.ImpactPoint;
++	const FVector N1 = FirstHit.ImpactNormal;
++	const FVector Din = (P1 - SonarBodyLoc).GetSafeNormal();
++	if (Din.IsNearlyZero()) {
++		return;
++	}
++	const FVector RB = Din - 2.0f * FVector::DotProduct(Din, N1) * N1;
++
++	// Budget for the second leg. The reported range is half the total path, so
++	//   (|SB| + |BH| + |HS|) / 2 <= RangeMax, and |HS| >= 0
++	// gives |BH| <= 2*RangeMax - |SB|. Anything longer can only land out of range.
++	const float D1 = FirstHit.Distance;
++	const float Budget = 2.0f * RangeMax - D1;
++	if (Budget <= 1.0f) {
++		return;
++	}
++
++	static thread_local FHitResult Hit2(ForceInit);
++	Hit2.Reset();
++	// Start 1 cm off the surface so we do not immediately re-hit the face we left.
++	const FVector Start2 = P1 + RB;
++	const FVector End2 = P1 + RB * Budget;
++	if (bIgnorePlants) {
++		GetWorld()->LineTraceSingleByChannel(
++			Hit2,
++			Start2,
++			End2,
++			ECC_GameTraceChannel4,
++			TraceParams,
++			FCollisionResponseParams::DefaultResponseParam);
++	} else {
++		GetWorld()->LineTraceSingleByChannel(
++			Hit2,
++			Start2,
++			End2,
++			ECC_GameTraceChannel3,
++			TraceParams,
++			FCollisionResponseParams::DefaultResponseParam);
++	}
++	if (!Hit2.bBlockingHit) {
++		return;
++	}
++
++	const FVector P2 = Hit2.ImpactPoint;
++	const FVector N2 = Hit2.ImpactNormal;
++
++	const FVector ToSonar = SonarBodyLoc - P2;
++	const float	  D3 = ToSonar.Size();
++	if (D3 < KINDA_SMALL_NUMBER) {
++		return;
++	}
++	const FVector VH = ToSonar / D3;
++
++	const FVector Q = RB - 2.0f * FVector::DotProduct(RB, N2) * N2;
++	const float	  Align = FVector::DotProduct(Q, VH);
++	if (Align <= 0.0f) {
++		// The second specular lobe points away from the sonar: nothing comes back.
++		return;
++	}
++
++	const float D2 = FVector::Dist(P1, P2);
++	const float Reported = 0.5f * (D1 + D2 + D3);
++	if (Reported < RangeMin || Reported > RangeMax) {
++		return;
++	}
++
++	// Reflection coefficient of each surface. The first one is already resolved on
++	// the direct detection, so only the second needs a material lookup.
++	const float Z1 = FirstDetection.impedance_override > 0.0f
++					   ? FirstDetection.impedance_override
++					   : GetImpedanceFromMap(FirstDetection.material_type);
++	const SonarDetection Second = ComputeDetection(Hit2, ActorTransf);
++	const float			 Z2 = Second.impedance_override > 0.0f
++					   ? Second.impedance_override
++					   : GetImpedanceFromMap(Second.material_type);
++	const float R1 = (Z1 - WaterImpedance) / (Z1 + WaterImpedance);
++	const float R2 = (Z2 - WaterImpedance) / (Z2 + WaterImpedance);
++
++	// Angle the echo comes back from, in the sonar body frame. It is NOT the
++	// transmit angle, which is why the caller cannot use the two-way pattern.
++	// Local is the sonar -> P2 direction; with the body rotation removed its
++	// components match the (Pitch = elevation, Yaw = azimuth) convention ShootRay
++	// builds its rays with, so Local.Y < 0 is the same "port" test as h < 0.
++	const FVector Local = SonarBodyRot.UnrotateVector(-VH);
++	const float	  Horiz = FMath::Sqrt(Local.X * Local.X + Local.Y * Local.Y);
++
++	Out.bValid = true;
++	Out.distance = Reported;
++	Out.val = R1 * R1 * R2 * R2 * Align;
++	Out.elev_rx_deg = FMath::RadiansToDegrees(FMath::Atan2(Local.Z, Horiz));
++	Out.azim_rx_deg = FMath::RadiansToDegrees(FMath::Atan2(Local.Y, Local.X));
++	Out.bLeft = (Local.Y < 0.0f);
++	Out.scatter_point = P2;
++}
++
+ void URaycastSidescanSonar::showRegion(float DeltaTime) {
+ 	if (ViewRegion) {
+-		float	 debugThickness = 3.0f;
+-		float	 DebugNumSides = 12; // change later?
+-		float	 length = RangeMax;	 // length of cone in cm
+-		FRotator ResultRotation = UKismetMathLibrary::ComposeRotators(
+-			FRotator(90, 0, 0), GetComponentRotation());
+-		DrawDebugCone(
+-			GetWorld(),
+-			GetComponentLocation(),
+-			GetForwardVector(), // ResultRotation.RotateVector(GetForwardVector()),
+-			length,
+-			(Azimuth / 2) * PI / 180,
+-			(Elevation / 2) * PI / 180,
+-			DebugNumSides,
+-			FColor::Green,
+-			false,
+-			DeltaTime * TicksPerCapture * 1.1,
+-			ECC_WorldStatic,
+-			debugThickness);
++		// Draw ONLY the 4 corner rays of the fan (outline), no internal rays.
++		// Corners = (min/max azimuth) x (min/max elevation), same angle composition
++		// as ShootRay, so the outline matches actual coverage exactly.
++		const float	   debugThickness = 3.0f;
++		const float	   duration = DeltaTime * TicksPerCapture * 1.1f;
++		const FVector  origin = GetComponentLocation();
++		const FRotator bodyRot = GetComponentRotation();
++		const float	   az[2] = {minAzimuth, maxAzimuth};
++		const float	   el[2] = {minElev, maxElev};
++		for (int a = 0; a < 2; a++) {
++			for (int e = 0; e < 2; e++) {
++				FRotator laser(el[e], az[a], 0);   // (Pitch=elev, Yaw=azim, Roll=0)
++				FRotator res =
++					UKismetMathLibrary::ComposeRotators(laser, bodyRot);
++				FVector end =
++					RangeMax * UKismetMathLibrary::GetForwardVector(res) + origin;
++				DrawDebugLine(
++					GetWorld(), origin, end, FColor::Green, false, duration,
++					ECC_WorldStatic, debugThickness);
++			}
++		}
+ 	}
+ }
+ 
+@@ -274,30 +741,128 @@ void URaycastSidescanSonar::TickSensorComponent(
+ 		TraceParams.bIgnoreTouches = true;
+ 		TraceParams.bFindInitialOverlaps = false;
+ 
++		// Multipath diagnostics. Without these a run that shows no change is
++		// ambiguous: it could mean "the geometry produced no second bounce" or
++		// "the flag never reached the sensor". Counting rays separates the two.
++		std::atomic<int32> MpTraced{0};		// rays whose 1st hit got a 2nd trace
++		std::atomic<int32> MpBinned{0};		// 2nd bounces that survived and binned
++		std::atomic<int32> RayHits{0};		// rays with any hit at all
++
+ 		// For each vertical/elevation angle in the array
+ 		// Start a parallel for, and for loop through each horizontal/azimuth angle
+ 		ParallelFor(
+ 			VerticalAngles.Num(),
+ 			[&](int32 i) {
+ 				for (auto h : HorizontalAngles) {
++					MultipathEcho Echo;
++					FVector HitPoint = FVector::ZeroVector;
+ 					SonarDetection Detection = ShootRay(
+ 						VerticalAngles[i],
+ 						h,
+ 						ActorTransf,
+ 						SonarBodyLoc,
+ 						SonarBodyRot,
+-						TraceParams);
+-					float z = GetImpedanceFromMap(Detection.material_type);
++						TraceParams,
++						UseMultipath ? &Echo : nullptr,
++						&HitPoint);
++					// A positive impedance_override means the hit carried its own
++					// impedance (position-dependent facies field) and the named
++					// materials.csv lookup does not apply.
++					float z = Detection.impedance_override > 0.0f
++								  ? Detection.impedance_override
++								  : GetImpedanceFromMap(Detection.material_type);
+ 					float r = (z - WaterImpedance) / (z + WaterImpedance);
+-					float val = r * r * Detection.cos_inc_angle;
+-					// if (h < 0) {
+-					// 	leftHists[i](bh::weight(val), Detection.distance);
+-					// } else {
+-					Hists[i](bh::weight(val), Detection.distance);
+-					// }
++					// Macro backscatter ablation contract:
++					//   default  |R|^2 cos(incidence)
++					//   control  |R|^2
++					// Beam directivity remains an independent switch below.
++					float val = r * r
++						* (UseIncidenceCosine ? Detection.cos_inc_angle : 1.0f);
++					// Two-way transducer directivity at this ray's real angle off
++					// the acoustic axis (across-track fan). Real sonar-equation term.
++					if (UseBeamPattern) {
++						val *= BeamPattern2Way(VerticalAngles[i], h);
++					}
++					// Ground-truth label rides on the same ray/bin as the intensity,
++					// so the mask is pixel-aligned with the waterfall by construction.
++					const double lbl = Detection.is_target ? 1.0 : 0.0;
++					const bool bLeftDirect = h < 0;
++					if (SignalModel == ESSSSignalModel::CoherentField) {
++						AccumulateCoherentScatter(
++							i, bLeftDirect, Detection.distance, val, HitPoint);
++					} else if (bLeftDirect) {
++						leftHists[i](bh::weight(val), Detection.distance);
++					} else {
++						Hists[i](bh::weight(val), Detection.distance);
++					}
++					if (bLeftDirect) {
++						if (UseSemanticLabels) {
++							leftLabelHists[i](bh::weight(lbl), Detection.distance);
++						}
++					} else {
++						if (UseSemanticLabels) {
++							labelHists[i](bh::weight(lbl), Detection.distance);
++						}
++					}
++
++					// Second-bounce echo, if this ray produced one. It lands in a
++					// LONGER range bin than the direct return, which is what makes
++					// multipath show up as a ghost trailing the real object.
++					//
++					// Both hists are indexed [i], the row this ParallelFor iteration
++					// owns, so writing the opposite side here is still race-free.
++					//
++					// The label hists are deliberately left alone: a ghost is not
++					// where the object is, so it must not become ground truth. They
++					// normalise by their own counts, so skipping them is consistent.
++					if (UseMultipath) {
++						if (Detection.distance > 0.f) {
++							RayHits.fetch_add(1, std::memory_order_relaxed);
++							MpTraced.fetch_add(1, std::memory_order_relaxed);
++						}
++						if (Echo.bValid) {
++							MpBinned.fetch_add(1, std::memory_order_relaxed);
++						}
++					}
++					if (Echo.bValid) {
++						float mval = Echo.val;
++						if (UseBeamPattern) {
++							// Transmit and receive angles differ, so weight each with
++							// the one-way |D|^2 rather than |D|^4 at one angle.
++							mval *= BeamPatternPower1Way(VerticalAngles[i], h)
++								  * BeamPatternPower1Way(
++									  Echo.elev_rx_deg, Echo.azim_rx_deg);
++						}
++						if (SignalModel == ESSSSignalModel::CoherentField) {
++							AccumulateCoherentScatter(
++								i, Echo.bLeft, Echo.distance, mval, Echo.scatter_point);
++						} else if (Echo.bLeft) {
++							leftHists[i](bh::weight(mval), Echo.distance);
++						} else {
++							Hists[i](bh::weight(mval), Echo.distance);
++						}
++					}
+ 				}
+ 			},
+ 			EParallelForFlags::Unbalanced);
++
++		if (UseMultipath) {
++			// Every 50th ping so a long survey does not flood the log.
++			static thread_local int32 MpLogCounter = 0;
++			if ((MpLogCounter++ % 50) == 0) {
++				UE_LOG(
++					LogHolodeck,
++					Log,
++					TEXT("[multipath] rays_hit=%d second_traced=%d binned=%d (%.2f%% of hits)"),
++					RayHits.load(),
++					MpTraced.load(),
++					MpBinned.load(),
++					RayHits.load() > 0
++						? 100.0 * MpBinned.load() / RayHits.load()
++						: 0.0);
++			}
++		}
++
+ 		if (ViewRays) {
+ 			while (!LinesToDraw.IsEmpty()) {
+ 				FVector Line;
+@@ -329,26 +894,118 @@ void URaycastSidescanSonar::TickSensorComponent(
+ 
+ 		/// Get the left and right histograms as easier to use variables
+ 		auto hist = HistZero;
+-		// auto histl = LeftHist;
++		auto histl = LeftHist;
+ 
+-		/// Move histogram data into the buffer
++		/// Move histogram data into the buffer.
++		///
++		/// FUSED LAYOUT (2026-08-08). 두 내부 반쪽을 **먼저 합치고** 그 위에 확률
++		/// 모델을 한 번만 적용한다.
++		///
++		/// 왜: `h<0` 와 `h>=0` 는 서로 다른 트랜스듀서/서브어퍼처/서브밴드/ping 이
++		/// 아니라, **하나의 수평 빔 footprint 를 수치적으로 샘플링한 내부 ray group**
++		/// 이다(Azimuth 0.26deg 를 0.13deg 간격으로 3개: -0.13 / 0 / +0.13).
++		/// 판정 근거: 세 레이의 along-track 이격이 항상 해상도 셀 R*sin(theta_h) 이내
++		/// 이고, speckle 을 끄면 두 반쪽의 상관계수가 평탄 해저에서 1.000000
++		/// (상대차 중앙값 6 ppm), 기복 지형에서도 0.9967 이다.
++		///
++		/// 예전 구조는 반쪽마다 독립 speckle/가산노이즈를 적용한 뒤 클라이언트가
++		/// 그 둘을 더해서, 선형 평균이 2배(+3.01 dB)가 되고 speckle contrast 가
++		/// 이론값의 1/sqrt(2) 로 줄었다. 그 독립성은 물리·기하가 아니라 RNG 를 두 번
++		/// 부른 구현에서 생긴 것이라, 현재 모델의 출력 픽셀 정의와 맞지 않는다.
++		///
++		/// 결합 규칙: I0 = (sum_L + sum_R) / (count_L + count_R)
++		///   -> 각 **레이**가 등가중이 된다. 그룹 평균끼리 더하면 좌 1개 / 우 2개라
++		///      레이 가중치가 달라진다. beam pattern 은 이미 레이별 val 에 곱해져
++		///      있으므로 이 합은 beam-weighted 평균이 된다.
++		///
++		/// 각 채널은 RangeBins*2 미러 레이아웃을 유지한다. intensity 모드는 power
++		/// 채널 하나, coherent 모드는 pre-propagation I/Q 두 채널이다. 라벨은 마지막
++		/// 채널에 붙는다. 클라이언트가 I/Q 뒤에 TL, 수신기 잡음, chirp matched filter,
++		/// 검파를 적용하므로 파동 위상을 더 이상 조기에 버리지 않는다.
+ 		float* result = static_cast<float*>(Buffer);
+ 		for (int i = 0; i < RangeBins; i++) {
+-			if (hist.at(i).count() > 0) {
+-				result[i] = hist.at(i).sum() / hist.at(i).count();
+-				result[i] *= (1 + multNoise.sampleFloat());
+-				result[i] += addNoise.sampleRayleigh();
++			const int ridx = RangeBins + i;          // [RangeBins .. 2*RangeBins-1]
++			const int lidx = RangeBins - 1 - i;      // [0 .. RangeBins-1], 중앙=나디르
++
++			const double cnt = hist.at(i).count() + histl.at(i).count();
++			const double SumPower = hist.at(i).sum() + histl.at(i).sum();
++			if (SignalModel == ESSSSignalModel::CoherentField) {
++				float ZReal = 0.0f;
++				float ZImag = 0.0f;
++				if (cnt > 0 && SumPower > 0.0) {
++					const float I0 = static_cast<float>(SumPower / cnt);
++					const float S = SpeckleDist == ESpeckleDistribution::Off
++						? 0.0f
++						: FMath::Clamp(SpeckleStrength, 0.0f, 1.0f);
++					const double InvPower = 1.0 / SumPower;
++					const FVector CellPoint(
++						static_cast<float>((CoherentRealHist.at(i).sum()
++							+ LeftCoherentRealHist.at(i).sum()) * InvPower),
++						static_cast<float>((CoherentImagHist.at(i).sum()
++							+ LeftCoherentImagHist.at(i).sum()) * InvPower),
++						static_cast<float>((CoherentZHist.at(i).sum()
++							+ LeftCoherentZHist.at(i).sum()) * InvPower));
++					float DReal;
++					float DImag;
++					if (UseWorldAnchoredSpeckle) {
++						WorldComplexGaussian(CellPoint, DReal, DImag);
++					} else {
++						// Deliberately non-spatial ablation: one fresh circular complex
++						// Gaussian sample per output cell and ping. StandardNormalPair
++						// emits N(0,1) components; /sqrt(2) gives E|D|^2=1.
++						StandardNormalPair(DReal, DImag);
++						const float InvSqrtTwo = 1.0f / FMath::Sqrt(2.0f);
++						DReal *= InvSqrtTwo;
++						DImag *= InvSqrtTwo;
++					}
++
++					// Z is the pulse-compressed complex BASEBAND envelope.  Absolute carrier
++					// phase varies on the millimetre wavelength scale, while this ray grid and
++					// output grid are centimetre/decimetre scale.  Sampling exp(-j4*pi*f*r/c)
++					// here aliases that unresolved carrier into fixed range stripes.  The
++					// sub-cell phase is therefore represented by the world-anchored circular
++					// complex field D; the optional coherent component uses the demodulator's
++					// phase reference.  A model that needs absolute phase/multipath interference
++					// must resolve the surface and delay axis at sub-wavelength spacing first.
++					const float CReal = 1.0f;
++					const float CImag = 0.0f;
++					const float A = FMath::Sqrt(I0);
++					ZReal = A
++						* (FMath::Sqrt(1.0f - S) * CReal + FMath::Sqrt(S) * DReal);
++					ZImag = A
++						* (FMath::Sqrt(1.0f - S) * CImag + FMath::Sqrt(S) * DImag);
++				}
++				const int QOffset = RangeBins * 2;
++				result[ridx] = ZReal;
++				result[lidx] = ZReal;
++				result[QOffset + ridx] = ZImag;
++				result[QOffset + lidx] = ZImag;
+ 			} else {
+-				result[i] = addNoise.sampleRayleigh();
++				float Value = 0.0f;
++				if (cnt > 0) {
++					const double I0 = SumPower / cnt;
++					Value = static_cast<float>(I0) * ComplexSpecklePowerFactor();
++				}
++				result[ridx] = Value;
++				result[lidx] = Value;
++			}
++
++			// --- ground-truth label channel (same layout, offset by 2*RangeBins) ---
++			// Value = fraction of contributing rays in this bin that hit a tagged target.
++			// No noise: this is geometry truth, not a measurement.
++			// 강도와 **같은 결합 규칙**을 쓴다 — 예전에는 그룹별로 따로 비율을 내고
++			// 클라이언트가 max 를 취해서, 좌 1레이 / 우 2레이의 가중치가 어긋났다.
++			if (UseSemanticLabels) {
++				const int MeasurementChannels =
++					SignalModel == ESSSSignalModel::CoherentField ? 2 : 1;
++				const int lab0 = RangeBins * 2 * MeasurementChannels;
++				const double lcnt = LabelHist.at(i).count() + LeftLabelHist.at(i).count();
++				const float frac = (lcnt > 0)
++					? static_cast<float>((LabelHist.at(i).sum() + LeftLabelHist.at(i).sum()) / lcnt)
++					: 0.f;
++				result[lab0 + ridx] = frac;
++				result[lab0 + lidx] = frac;
+ 			}
+-			// lidx = RangeBins - i - 1;
+-			// if (histl.at(i).count() > 0) {
+-			// 	result[lidx] = histl.at(i).sum() / histl.at(i).count();
+-			// 	result[lidx] *= (1 + multNoise.sampleFloat());
+-			// 	result[lidx] += addNoise.sampleRayleigh();
+-			// } else {
+-			// 	result[lidx] = addNoise.sampleRayleigh();
+-			// }
+ 		}
+ 	}
+ }
+@@ -361,8 +1018,218 @@ void URaycastSidescanSonar::SumHistograms() {
+ 	for (int i = 1; i < Hists.Num(); i++) {
+ 		HistZero += Hists[i];
+ 	}
+-	// LeftHist = leftHists[0];
+-	// for (int i = 1; i < leftHists.Num(); i++) {
+-	// 	LeftHist += leftHists[i];
+-	// }
+-}
+\ No newline at end of file
++	LeftHist = leftHists[0];
++	for (int i = 1; i < leftHists.Num(); i++) {
++		LeftHist += leftHists[i];
++	}
++	if (SignalModel == ESSSSignalModel::CoherentField) {
++		CoherentRealHist = coherentRealHists[0];
++		CoherentImagHist = coherentImagHists[0];
++		CoherentZHist = coherentZHists[0];
++		LeftCoherentRealHist = leftCoherentRealHists[0];
++		LeftCoherentImagHist = leftCoherentImagHists[0];
++		LeftCoherentZHist = leftCoherentZHists[0];
++		for (int i = 1; i < coherentRealHists.Num(); i++) {
++			CoherentRealHist += coherentRealHists[i];
++			CoherentImagHist += coherentImagHists[i];
++			CoherentZHist += coherentZHists[i];
++			LeftCoherentRealHist += leftCoherentRealHists[i];
++			LeftCoherentImagHist += leftCoherentImagHists[i];
++			LeftCoherentZHist += leftCoherentZHists[i];
++		}
++	}
++	if (UseSemanticLabels) {
++		LabelHist = labelHists[0];
++		for (int i = 1; i < labelHists.Num(); i++) {
++			LabelHist += labelHists[i];
++		}
++		LeftLabelHist = leftLabelHists[0];
++		for (int i = 1; i < leftLabelHists.Num(); i++) {
++			LeftLabelHist += leftLabelHists[i];
++		}
++	}
++}
++
++void URaycastSidescanSonar::WorldComplexGaussian(
++	const FVector& WorldPoint,
++	float& OutReal,
++	float& OutImag) const {
++	const float Cell = FMath::Max(ScatterCorrelationLengthCm, 1e-3f);
++	const FVector P = WorldPoint / Cell;
++	const int32 X0 = FMath::FloorToInt(P.X);
++	const int32 Y0 = FMath::FloorToInt(P.Y);
++	const int32 Z0 = FMath::FloorToInt(P.Z);
++	const float Fx = SmoothWeight(P.X - static_cast<float>(X0));
++	const float Fy = SmoothWeight(P.Y - static_cast<float>(Y0));
++	const float Fz = SmoothWeight(P.Z - static_cast<float>(Z0));
++
++	float Real = 0.0f;
++	float Imag = 0.0f;
++	float VarianceWeight = 0.0f;
++	for (int Dz = 0; Dz <= 1; ++Dz) {
++		const float Wz = Dz ? Fz : 1.0f - Fz;
++		for (int Dy = 0; Dy <= 1; ++Dy) {
++			const float Wy = Dy ? Fy : 1.0f - Fy;
++			for (int Dx = 0; Dx <= 1; ++Dx) {
++				const float Wx = Dx ? Fx : 1.0f - Fx;
++				const float W = Wx * Wy * Wz;
++				float NReal;
++				float NImag;
++				HashNormalPair(
++					LatticeHash(
++						X0 + Dx,
++						Y0 + Dy,
++						Z0 + Dz,
++						ResolvedScatterSeed,
++						0x53435352u),
++					NReal,
++					NImag);
++				Real += W * NReal;
++				Imag += W * NImag;
++				VarianceWeight += W * W;
++			}
++		}
++	}
++	// HashNormalPair components are N(0,1). Divide by sqrt(2) for CN(0,1), and
++	// compensate interpolation variance so E(|G|^2)=1 everywhere in a lattice cell.
++	const float Scale = 1.0f / FMath::Sqrt(FMath::Max(2.0f * VarianceWeight, 1e-12f));
++	OutReal = Real * Scale;
++	OutImag = Imag * Scale;
++}
++
++float URaycastSidescanSonar::WorldGammaTexture(const FVector& WorldPoint) const {
++	if (!(TextureShape > 0.0f)) {
++		return 1.0f;
++	}
++	const float Cell = FMath::Max(TextureCorrelationLengthCm, 1e-3f);
++	const FVector P = WorldPoint / Cell;
++	const int32 X0 = FMath::FloorToInt(P.X);
++	const int32 Y0 = FMath::FloorToInt(P.Y);
++	const int32 Z0 = FMath::FloorToInt(P.Z);
++	const float Fx = SmoothWeight(P.X - static_cast<float>(X0));
++	const float Fy = SmoothWeight(P.Y - static_cast<float>(Y0));
++	const float Fz = SmoothWeight(P.Z - static_cast<float>(Z0));
++
++	float Texture = 0.0f;
++	for (int Dz = 0; Dz <= 1; ++Dz) {
++		const float Wz = Dz ? Fz : 1.0f - Fz;
++		for (int Dy = 0; Dy <= 1; ++Dy) {
++			const float Wy = Dy ? Fy : 1.0f - Fy;
++			for (int Dx = 0; Dx <= 1; ++Dx) {
++				const float Wx = Dx ? Fx : 1.0f - Fx;
++				const uint32 H = LatticeHash(
++					X0 + Dx,
++					Y0 + Dy,
++					Z0 + Dz,
++					ResolvedScatterSeed,
++					0x54455854u);
++				Texture += Wx * Wy * Wz * GammaUnitSample(TextureShape, H);
++			}
++		}
++	}
++	return FMath::Max(Texture, 0.0f);
++}
++
++void URaycastSidescanSonar::AccumulateCoherentScatter(
++	int ElevationIndex,
++	bool bLeft,
++	float RangeCm,
++	float MeanPower,
++	const FVector& ScatterPoint) {
++	const float P = FMath::Max(MeanPower * WorldGammaTexture(ScatterPoint), 0.0f);
++	if (bLeft) {
++		leftHists[ElevationIndex](bh::weight(P), RangeCm);
++	} else {
++		Hists[ElevationIndex](bh::weight(P), RangeCm);
++	}
++	if (!(P > 0.0f)) {
++		return;
++	}
++
++	// Store power-weighted coordinate moments.  Sampling one unit-variance complex
++	// field at the fused cell centroid is the statistically resolved-cell model;
++	// summing one correlated draw per numerical ray would make speckle mean depend on
++	// ray density and produced severe brightness bias in the packaged A/B image.
++	const float XMoment = P * ScatterPoint.X;
++	const float YMoment = P * ScatterPoint.Y;
++	const float ZMoment = P * ScatterPoint.Z;
++	if (bLeft) {
++		leftCoherentRealHists[ElevationIndex](bh::weight(XMoment), RangeCm);
++		leftCoherentImagHists[ElevationIndex](bh::weight(YMoment), RangeCm);
++		leftCoherentZHists[ElevationIndex](bh::weight(ZMoment), RangeCm);
++	} else {
++		coherentRealHists[ElevationIndex](bh::weight(XMoment), RangeCm);
++		coherentImagHists[ElevationIndex](bh::weight(YMoment), RangeCm);
++		coherentZHists[ElevationIndex](bh::weight(ZMoment), RangeCm);
++	}
++}
++
++void URaycastSidescanSonar::StandardNormalPair(float& OutReal, float& OutImag) {
++	// Box-Muller: two uniforms -> two independent N(0,1) samples.
++	const float U1 = FMath::Clamp(SpeckleStream.FRand(), 1e-7f, 1.0f);
++	const float U2 = SpeckleStream.FRand();
++	const float Radius = FMath::Sqrt(-2.0f * FMath::Loge(U1));
++	const float Phase = 2.0f * PI * U2;
++	OutReal = Radius * FMath::Cos(Phase);
++	OutImag = Radius * FMath::Sin(Phase);
++}
++
++float URaycastSidescanSonar::ComplexSpecklePowerFactor() {
++	if (SpeckleDist == ESpeckleDistribution::Off) {
++		return 1.0f;
++	}
++	const float DiffuseFraction = FMath::Clamp(SpeckleStrength, 0.0f, 1.0f);
++	float NReal;
++	float NImag;
++	StandardNormalPair(NReal, NImag);
++	// G = (NReal + i*NImag)/sqrt(2) -> E|G|^2=1.
++	const float DiffuseScale = FMath::Sqrt(DiffuseFraction * 0.5f);
++	const float Coherent = FMath::Sqrt(1.0f - DiffuseFraction);
++	const float ZReal = Coherent + DiffuseScale * NReal;
++	const float ZImag = DiffuseScale * NImag;
++	return ZReal * ZReal + ZImag * ZImag;
++}
++
++const TCHAR* URaycastSidescanSonar::SpeckleDistName() const {
++	switch (SpeckleDist) {
++		case ESpeckleDistribution::Off: return TEXT("off");
++		default:                        return TEXT("complex_gaussian_power");
++	}
++}
++
++const TCHAR* URaycastSidescanSonar::SignalModelName() const {
++	return SignalModel == ESSSSignalModel::CoherentField
++		? TEXT("coherent_field_iq")
++		: TEXT("detected_power");
++}
++
++float URaycastSidescanSonar::BeamPatternAxisPower1Way(
++	float AngleDeg,
++	float FullBeamwidthDeg) const {
++	// One-way amplitude directivity of a uniformly excited line array (broadside),
++	//   D(theta) = sinc(pi * (L/lambda) * sin theta),   sinc(x) = sin(x)/x.
++	// Half-power (|D|^2 = 1/2) occurs at pi*(L/lambda)*sin(theta) = 1.39156, so fixing
++	// the one-way -3 dB full beamwidth gives pi*L/lambda = 1.39156/sin(BW/2).
++	const float halfBW = FMath::DegreesToRadians(FullBeamwidthDeg * 0.5f);
++	if (!(halfBW > 0.f)) {
++		return 1.f;
++	}
++	const float k = 1.39156f / FMath::Sin(halfBW);
++	const float x = k * FMath::Sin(FMath::DegreesToRadians(AngleDeg));
++	const float D = (FMath::Abs(x) < 1e-6f) ? 1.f : (FMath::Sin(x) / x);  // one-way amp
++	return D * D;
++}
++
++float URaycastSidescanSonar::BeamPatternPower1Way(
++	float ElevAngleDeg,
++	float HorizontalAngleDeg) const {
++	return BeamPatternAxisPower1Way(ElevAngleDeg, VerticalBeamwidthDeg)
++		 * BeamPatternAxisPower1Way(HorizontalAngleDeg, Azimuth);
++}
++
++float URaycastSidescanSonar::BeamPattern2Way(
++	float ElevAngleDeg,
++	float HorizontalAngleDeg) const {
++	const float OneWay = BeamPatternPower1Way(ElevAngleDeg, HorizontalAngleDeg);
++	return OneWay * OneWay;
++}
+diff --git a/engine/Source/Holodeck/Sensors/Public/RaycastSidescanSonar.h b/engine/Source/Holodeck/Sensors/Public/RaycastSidescanSonar.h
+index e38ff650..4a62e1e0 100644
+--- a/engine/Source/Holodeck/Sensors/Public/RaycastSidescanSonar.h
++++ b/engine/Source/Holodeck/Sensors/Public/RaycastSidescanSonar.h
+@@ -2,18 +2,40 @@
+ #include "Holodeck.h"
+ #include "HolodeckSensor.h"
+ #include "HolodeckRaycastSonar.h"
+-#include "MultivariateNormal.h"
+-#include "MultivariateUniform.h"
+ #include "RaycastSidescanSonar.generated.h"
+ 
+-class TestRaycastSidescanSonar;
++class URaycastSidescanSonarSpec;
++
++/**
++ * Generic coherent-scattering model used for one fused resolution cell.
++ * ComplexGaussian draws a circular complex Gaussian field and detects power;
++ * Off leaves the deterministic mean backscatter unchanged.
++ */
++UENUM()
++enum class ESpeckleDistribution : uint8 {
++	ComplexGaussian,
++	Off,
++};
++
++/**
++ * Output level of the raycast model.
++ *
++ * Intensity keeps the historical detected-power contract. CoherentField emits
++ * pre-propagation complex I/Q so the client can apply transmission loss, receiver
++ * noise and the chirp matched filter before square-law detection.
++ */
++UENUM()
++enum class ESSSSignalModel : uint8 {
++	Intensity,
++	CoherentField,
++};
+ 
+ UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
+ class URaycastSidescanSonar : public UHolodeckRaycastSonar {
+ 	GENERATED_BODY()
+ 
+ #if WITH_AUTOMATION_TESTS
+-	friend class TestRaycastSidescanSonar;
++	friend class URaycastSidescanSonarSpec;
+ #endif
+ 
+ public:
+@@ -37,20 +59,120 @@ protected:
+ 		ELevelTick					 TickType,
+ 		FActorComponentTickFunction* ThisTickFunction) override;
+ 	virtual void showRegion(float DeltaTime) override;
++
++	/**
++	 * One second-bounce echo. If bValid is false the other fields are meaningless.
++	 * Ranges are UE units (cm), angles are degrees in the sonar body frame.
++	 */
++	struct MultipathEcho {
++		bool  bValid = false;
++		float distance = 0.f;		// range the sonar reports = total path / 2
++		float val = 0.f;			// R1^2 * R2^2 * (q . v_H); no directivity applied
++		float elev_rx_deg = 0.f;	// elevation the echo arrives from (!= transmit)
++		float azim_rx_deg = 0.f;	// horizontal arrival angle in the sonar body frame
++		bool  bLeft = false;		// side the echo arrives from (port when true)
++		FVector scatter_point = FVector::ZeroVector; // final interaction point, UE cm
++	};
++
+ 	SonarDetection ShootRay(
+ 		float				   VerticalAngle,
+ 		float				   HorizontalAngle,
+ 		const FTransform&	   ActorTransf,
+ 		const FVector&		   SonarBodyLoc,
+ 		const FRotator&		   ResultRot,
+-		FCollisionQueryParams& TraceParams);
+-	int GetNumItems() override { return RangeBins /* * 2 */; };
++		FCollisionQueryParams& TraceParams,
++		MultipathEcho*		   OutMultipath = nullptr,
++		FVector*			   OutHitPoint = nullptr);
++
++	/**
++	 * Trace the specular second bounce off FirstHit and fill Out.
++	 * Implements Algorithm 1 of the HoloOcean sonar paper; see the .cpp for the
++	 * symbol-by-symbol mapping.
++	 */
++	void TraceMultipath(
++		const FHitResult&	   FirstHit,
++		const SonarDetection&  FirstDetection,
++		const FTransform&	   ActorTransf,
++		const FVector&		   SonarBodyLoc,
++		const FRotator&		   SonarBodyRot,
++		FCollisionQueryParams& TraceParams,
++		MultipathEcho&		   Out);
++	// Every channel retains the mirrored dual-half layout (2*RangeBins). Intensity
++	// mode has one power channel. Coherent mode has I then Q. SemanticLabels appends
++	// one label channel after the measurement channels.
++	int GetNumItems() override {
++		const int MeasurementChannels =
++			SignalModel == ESSSSignalModel::CoherentField ? 2 : 1;
++		return RangeBins * 2 * (MeasurementChannels + (UseSemanticLabels ? 1 : 0));
++	};
+ 	int GetItemSize() override { return sizeof(float); };
+ 	void FillAngleArrays();
+ 	void ResetBuffer() override;
+ 	void CopyHistogramsToBuffer();
+ 	void SumHistograms();
+ 
++	/**
++	 * BeamPattern2Way
++	 * Two-way (transmit x receive) power directivity of a rectangular transducer.
++	 * The wide across-track axis uses Elevation; the narrow along-track axis uses
++	 * Azimuth. Each axis follows the uniform line-array far-field pattern:
++	 *     D(theta) = sinc(pi * (L/lambda) * sin theta),  sinc(x)=sin(x)/x
++	 * with L/lambda fixed so the one-way -3 dB full beamwidth equals Elevation.
++	 * Monostatic two-way power pattern = |D|^4. Returns 1 at theta = 0.
++	 */
++	float BeamPattern2Way(float ElevAngleDeg, float HorizontalAngleDeg) const;
++
++	/**
++	 * One-way 2-D POWER directivity at the supplied elevation/horizontal angles
++	 * (BeamPattern2Way squares this for monostatic transmit x receive).
++	 * Needed for multipath: the echo leaves along the transmit angle but comes back
++	 * from a different one, so transmit and receive must be weighted separately
++	 * instead of squaring a single angle.
++	 */
++	float BeamPatternPower1Way(float ElevAngleDeg, float HorizontalAngleDeg) const;
++	float BeamPatternAxisPower1Way(float AngleDeg, float FullBeamwidthDeg) const;
++
++	/**
++	 * Unit-mean detected POWER factor from a coherent + diffuse complex field.
++	 *
++	 *   Z = sqrt(1-s) + sqrt(s) * G,  G ~ CN(0,1)
++	 *   factor = |Z|^2
++	 *
++	 * SpeckleStrength s is the diffuse power fraction. s=1 gives fully-developed
++	 * single-look power (Exponential, CV=1); s=0 gives deterministic power 1.
++	 * Intermediate values are a physically meaningful Rician/coherent mixture, not
++	 * an intensity-domain interpolation between unrelated distributions.
++	 */
++	float ComplexSpecklePowerFactor();
++
++	/** Two independent N(0,1) samples from one Box-Muller draw. */
++	void StandardNormalPair(float& OutReal, float& OutImag);
++
++	/** Selected mode as a log-friendly string. */
++	const TCHAR* SpeckleDistName() const;
++	const TCHAR* SignalModelName() const;
++
++	/**
++	 * Stateless, world-anchored circular complex Gaussian field. Nearby positions
++	 * share lattice samples and are therefore correlated; revisiting the same seabed
++	 * point returns the same realization. Each component has variance 1/2.
++	 */
++	void WorldComplexGaussian(
++		const FVector& WorldPoint,
++		float& OutReal,
++		float& OutImag) const;
++
++	/** Unit-mean, world-anchored Gamma texture. Shape<=0 disables texture. */
++	float WorldGammaTexture(const FVector& WorldPoint) const;
++
++	/** Add one complex scatterer contribution to the selected range histogram. */
++	void AccumulateCoherentScatter(
++		int ElevationIndex,
++		bool bLeft,
++		float RangeCm,
++		float MeanPower,
++		const FVector& ScatterPoint);
++
+ private:
+ 	/*
+ 	 * Parent
+@@ -71,12 +193,108 @@ private:
+ 	UPROPERTY(EditAnywhere)
+ 	float ElevationRayRes = NAN;
+ 
+-	// 2nd lobe of hists since its sidescan
+-	// TArray<Histogram> leftHists;
++	// Elevation is the numerical ray-cast support. The physical one-way -3 dB
++	// vertical beamwidth may be narrower, so low-energy shoulders taper instead
++	// of becoming exactly zero at the nominal beam edge.
++	UPROPERTY(EditAnywhere)
++	float VerticalBeamwidthDeg = NAN;
++
++	// If true, weight each ray's backscatter by the transducer's two-way beam
++	// directivity evaluated at that ray's real angle off the acoustic axis.
++	UPROPERTY(EditAnywhere)
++	bool UseBeamPattern = false;
++
++	// Experiment-only ablation switch.  The production/default model keeps the
++	// Lambert-style cosine incidence term; false leaves only material reflection
++	// (and any separately enabled beam/scattering terms) in the macro return.
++	UPROPERTY(EditAnywhere)
++	bool UseIncidenceCosine = true;
++
++	// Production/default speckle is a deterministic function of world position.
++	// The false mode is intentionally available only as an ablation control: it
++	// draws a fresh CN(0,1) sample for every emitted resolution cell and ping.
++	UPROPERTY(EditAnywhere)
++	bool UseWorldAnchoredSpeckle = true;
++
++	// Second-bounce (multipath) echoes. Potokar et al., "HoloOcean: An Underwater
++	// Robotics Simulator" (ICRA/IROS 2022) sec. III-B, Algorithm 1. The reference
++	// implementation lives in ImagingSonar.cpp and is octree-based, which we cannot
++	// use (our scene objects are spawned at runtime, after the octree is built at
++	// TickCounter >= 5). Here the same physics is done with a second line trace.
++	UPROPERTY(EditAnywhere)
++	bool UseMultipath = false;
++
++	// Binary ground-truth labelling. When enabled, every ray also records whether the
++	// actor it hit carries LabelTag; per bin we output the fraction of contributing rays
++	// that hit a tagged (target) actor. Because it is accumulated from the very same rays
++	// as the intensity, the mask is pixel-aligned with the waterfall and inherits
++	// occlusion/shadow/layover for free.
++	UPROPERTY(EditAnywhere)
++	bool UseSemanticLabels = false;
++	// Actor tag that marks a target (e.g. shipwreck). Set on the actor in the scene.
++	FName LabelTag = FName(TEXT("wreck"));
++
++	// 2nd lobe of hists since its sidescan (port side)
++	TArray<Histogram> leftHists;
+ 	Histogram HistZero;
+-	// Histogram		  LeftHist;
++	Histogram		  LeftHist;
++
++	// Power-weighted world-coordinate moments for each fused resolution cell.
++	// Hists/leftHists carry local mean power and count.  At output, the moments give
++	// one representative world location at which the unit-variance complex baseband
++	// scattering field is sampled.  This keeps expected power independent of ray
++	// count and of correlations between numerical ray samples inside one cell.
++	TArray<Histogram> coherentRealHists;
++	TArray<Histogram> coherentImagHists;
++	TArray<Histogram> coherentZHists;
++	TArray<Histogram> leftCoherentRealHists;
++	TArray<Histogram> leftCoherentImagHists;
++	TArray<Histogram> leftCoherentZHists;
++	Histogram CoherentRealHist;
++	Histogram CoherentImagHist;
++	Histogram CoherentZHist;
++	Histogram LeftCoherentRealHist;
++	Histogram LeftCoherentImagHist;
++	Histogram LeftCoherentZHist;
++
++	// Parallel histograms carrying the binary label (weight 1 = target, 0 = other)
++	TArray<Histogram> labelHists;
++	TArray<Histogram> leftLabelHists;
++	Histogram		  LabelHist;
++	Histogram		  LeftLabelHist;
++
++	// Legacy parameters remain parseable so old scenarios fail loudly neither at
++	// load time nor by silently restoring the old power-domain Rayleigh addition.
++	// AddSigma is no longer applied here; receiver noise belongs after propagation
++	// loss and is handled in scripts/sss_common.py as complex Gaussian noise power.
++	float LegacyAddSigma = 0.0f;
++	float MultSigmaValue = 0.5f;
++
++	/**
++	 * Speckle RNG. Each complex Gaussian draw consumes two uniforms (Box-Muller).
++	 * Seeded from the
++	 * `SpeckleSeed` config.
++	 *
++	 * Thread safety: ComplexSpecklePowerFactor() is only called from
++	 * CopyHistogramsToBuffer(),
++	 * which runs single-threaded after the ParallelFor over elevation angles.
++	 */
++	FRandomStream SpeckleStream;
++	int32 SpeckleSeed = 0;
++	// Diffuse power fraction in [0, 1]. 1 = fully developed power speckle, 0 = coherent.
++	float SpeckleStrength = 1.0f;
++
++	ESpeckleDistribution SpeckleDist = ESpeckleDistribution::ComplexGaussian;
++	// Engine-level fallback stays intensity for binary compatibility with an old
++	// client that does not send SignalModel. The updated Python client explicitly
++	// requests coherent mode by default and allocates the matching I/Q buffer.
++	ESSSSignalModel SignalModel = ESSSSignalModel::Intensity;
+ 
+-	// Noise
+-	MultivariateNormal<1> addNoise;
+-	MultivariateNormal<1> multNoise;
++	// Carrier and unresolved-scattering field parameters. UE geometry uses cm;
++	// configuration values are supplied in SI and converted during parsing.
++	float CarrierFrequencyHz = 520000.0f;
++	float ScatterCorrelationLengthCm = 5.0f;
++	float TextureCorrelationLengthCm = 100.0f;
++	float TextureShape = 0.0f;
++	uint32 ResolvedScatterSeed = 1u;
+ };
+diff --git a/engine/Source/Holodeck/Sensors/Public/SonarData.h b/engine/Source/Holodeck/Sensors/Public/SonarData.h
+index 61e21935..51862873 100644
+--- a/engine/Source/Holodeck/Sensors/Public/SonarData.h
++++ b/engine/Source/Holodeck/Sensors/Public/SonarData.h
+@@ -12,6 +12,15 @@ namespace holoocean {
+ 			float	distance{};
+ 			float	cos_inc_angle{};
+ 			FString material_type = TEXT("");
++			// Binary ground-truth flag: the ray hit an actor tagged as a target
++			// (e.g. shipwreck). Filled by sensors that enable semantic labelling.
++			bool	is_target = false;
++			// Acoustic impedance supplied directly by the hit, bypassing the
++			// materials.csv name lookup. Used when impedance is a continuous
++			// function of position (e.g. a sediment-facies field) and therefore
++			// cannot be expressed as a named material. Negative = unused.
++			// See GetFieldImpedanceAtLocation() in HolodeckRaycastSonar.
++			float	impedance_override = -1.0f;
+ 
+ 			SonarDetection() = default;
+ 
+diff --git a/engine/Source/Holodeck/Sensors/Tests/RaycastSidescanSonar.spec.cpp b/engine/Source/Holodeck/Sensors/Tests/RaycastSidescanSonar.spec.cpp
+new file mode 100644
+index 00000000..64cb6c1b
+--- /dev/null
++++ b/engine/Source/Holodeck/Sensors/Tests/RaycastSidescanSonar.spec.cpp
+@@ -0,0 +1,73 @@
++#include "Misc/AutomationTest.h"
++#include "RaycastSidescanSonar.h"
++
++BEGIN_DEFINE_SPEC(
++	URaycastSidescanSonarSpec,
++	"HoloOcean.URaycastSidescanSonar.CoherentField",
++	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
++URaycastSidescanSonar* Sonar = nullptr;
++END_DEFINE_SPEC(URaycastSidescanSonarSpec)
++
++void URaycastSidescanSonarSpec::Define() {
++	BeforeEach([this]() {
++		Sonar = NewObject<URaycastSidescanSonar>();
++		Sonar->ResolvedScatterSeed = 20260809u;
++		Sonar->ScatterCorrelationLengthCm = 5.0f;
++	});
++
++	It("is deterministic at a fixed world coordinate", [this]() {
++		float AReal, AImag, BReal, BImag;
++		const FVector P(123.4f, -89.0f, 17.0f);
++		Sonar->WorldComplexGaussian(P, AReal, AImag);
++		Sonar->WorldComplexGaussian(P, BReal, BImag);
++		TestEqual("real component", AReal, BReal);
++		TestEqual("imaginary component", AImag, BImag);
++	});
++
++	It("has approximately unit complex variance", [this]() {
++		double Power = 0.0;
++		constexpr int N = 10000;
++		for (int I = 0; I < N; ++I) {
++			float Real, Imag;
++			// Lattice vertices are independent; non-integer offsets also exercise
++			// interpolation-variance normalization.
++			const FVector P(
++				5.0f * I + 1.7f,
++				5.0f * ((I * 37) % 10007) + 2.1f,
++				5.0f * ((I * 101) % 997) + 0.9f);
++			Sonar->WorldComplexGaussian(P, Real, Imag);
++			Power += Real * Real + Imag * Imag;
++		}
++		const double MeanPower = Power / N;
++		TestTrue("E|G|^2 close to one", FMath::Abs(MeanPower - 1.0) < 0.04);
++	});
++
++	It("produces a unit-mean Gamma texture", [this]() {
++		Sonar->ResolvedScatterSeed = 20260809u;
++		Sonar->TextureShape = 2.0f;
++		Sonar->TextureCorrelationLengthCm = 100.0f;
++		double Sum = 0.0;
++		constexpr int N = 10000;
++		for (int I = 0; I < N; ++I) {
++			// Sample lattice vertices so the configured Gamma marginal is tested
++			// without the intended smoothing effect of interpolation.
++			Sum += Sonar->WorldGammaTexture(
++				FVector(100.0f * I, 100.0f * ((I * 53) % 10009), 0.0f));
++		}
++		const double Mean = Sum / N;
++		TestTrue("Gamma texture mean close to one", FMath::Abs(Mean - 1.0) < 0.04);
++	});
++
++	It("places the one-way half-power point at half beamwidth", [this]() {
++		const float P = Sonar->BeamPatternAxisPower1Way(0.5f, 1.0f);
++		TestTrue("one-way edge power close to 0.5", FMath::Abs(P - 0.5f) < 0.01f);
++	});
++
++	It("keeps nominal beamwidth independent of ray support", [this]() {
++		Sonar->Elevation = 68.0f;
++		Sonar->VerticalBeamwidthDeg = 50.0f;
++		Sonar->Azimuth = 1.0f;
++		const float P = Sonar->BeamPatternPower1Way(25.0f, 0.0f);
++		TestTrue("25deg is the nominal one-way -3dB point", FMath::Abs(P - 0.5f) < 0.01f);
++	});
++}

@@ -655,19 +655,6 @@ def run(argv, show_viewport=False, viz=False):
             (save_bbox, bbox_dir), (save_overlay, bbox_overlay_dir)):
         if enabled:
             directory.mkdir(parents=True, exist_ok=True)
-    # Canonical PNG is always raw/ + trueaspect/.  A large-dataset scene can
-    # additionally request one display-only clipping variant from identical dB.
-    variant_span = float(cfg.get("display_variant_dynamic_range_db", 0.0) or 0.0)
-    variant_raw_dir = (session / "sss" / "waterfall_variant"
-                       if output_root and variant_span > 0.0 and save_png else
-                       session / "waterfall_variant" if variant_span > 0.0 and save_png else None)
-    variant_ta_dir = (session / "sss" / "true_aspect_variant"
-                      if output_root and variant_span > 0.0 and save_ta else
-                      session / "true_aspect_variant" if variant_span > 0.0 and save_ta else None)
-    if variant_raw_dir is not None:
-        variant_raw_dir.mkdir(parents=True, exist_ok=True)
-    if variant_ta_dir is not None:
-        variant_ta_dir.mkdir(parents=True, exist_ok=True)
     if gt and save_bbox:
         (bbox_dir / "classes.txt").write_text(
             str(cfg.get("gt_bbox_class_name", "wreck")) + "\n")
@@ -682,15 +669,6 @@ def run(argv, show_viewport=False, viz=False):
             cfg["_scene"], ensure_ascii=False, indent=2, default=str) + "\n")
     if output_root is None and save_raw_npy:
         (rawnpy_dir / "acquisition_config.json").write_text(metadata_text)
-    if variant_raw_dir is not None or variant_ta_dir is not None:
-        (session / "display_variants.json").write_text(json.dumps({
-            "canonical": {"directory": "sss/waterfall" if output_root else "waterfall",
-                          "dynamic_range_db": float(
-                cfg.get("display_dynamic_range_db", 0.0) or 0.0)},
-            "clip_randomized": {"directory": "sss/waterfall_variant" if output_root else "waterfall_variant",
-                                "dynamic_range_db": variant_span,
-                                "same_linear_db_as_canonical": True},
-        }, ensure_ascii=False, indent=2) + "\n")
     print(f"[sss {plat}] survey={cfg.get('survey')} legs={len(legs)} "
           f"heading={float(cfg.get('survey_heading_deg', 0.0)):.0f}deg "
           f"spacing={cfg.get('leg_spacing_m')}m -> {session}")
@@ -792,8 +770,6 @@ def run(argv, show_viewport=False, viz=False):
                                         leg=leg_id, G=G, mask_dir=mask_dir,
                                         bbox_dir=bbox_dir,
                                         bbox_overlay_dir=bbox_overlay_dir,
-                                        variant_raw_dir=variant_raw_dir,
-                                        variant_ta_dir=variant_ta_dir,
                                         save_png=save_png, save_ta=save_ta,
                                         save_processed=save_proc_npy,
                                         save_mask=save_mask, save_bbox=save_bbox,
@@ -804,8 +780,7 @@ def run(argv, show_viewport=False, viz=False):
 
 def process_and_save(cfg, P, S, raw_dir, ta_dir, procnpy_dir, leg=None,
                      G=None, mask_dir=None, bbox_dir=None,
-                     bbox_overlay_dir=None, variant_raw_dir=None,
-                     variant_ta_dir=None, *, save_png=True, save_ta=True,
+                     bbox_overlay_dir=None, *, save_png=True, save_ta=True,
                      save_processed=True, save_mask=True, save_bbox=True,
                      save_overlay=True):
     """raw 좌/우 trace(P,S) -> 후처리(§3.6) -> 선택 산출물 저장.
@@ -936,17 +911,6 @@ def process_and_save(cfg, P, S, raw_dir, ta_dir, procnpy_dir, leg=None,
                                     vmin=vmin, vmax=vmax)
     if raw_p is not None:
         print(f"   -> waterfall/{raw_p.name}  ({img.shape[0]}x{img.shape[1]}px)", flush=True)
-    variant_span = float(cfg.get("display_variant_dynamic_range_db", 0.0) or 0.0)
-    if variant_span > 0.0 and (variant_raw_dir is not None or variant_ta_dir is not None):
-        variant_vmin = max(float(physical_vmin), float(vmax) - variant_span)
-        sc.save_waterfall(img,
-                          variant_raw_dir/fname if variant_raw_dir is not None else None,
-                          variant_ta_dir/fname if variant_ta_dir is not None else None,
-                          across_px, DX,
-                          vmin=variant_vmin, vmax=vmax)
-        print(f"   -> waterfall_variant/{fname}  "
-              f"(scene clipping {variant_span:.1f} dB)", flush=True)
-
     # --- GT 이진 마스크: strict ray-hit을 메모리에서 filled mask로 변환 ---
     if G is not None and (save_mask or save_bbox or save_overlay):
         gp, gs = G

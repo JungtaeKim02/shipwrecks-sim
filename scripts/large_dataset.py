@@ -84,7 +84,6 @@ SCENE_CONTROLLED_KEYS = {
     # frozen; only this acquisition geometry follows the sampled altitude.
     "range_min_m", "range_max_m", "range_res_m", "depression_deg",
     "range_reference_altitude_m", "noise_level", "speckle_strength",
-    "display_variant_dynamic_range_db",
 }
 
 
@@ -383,8 +382,6 @@ def build_plan(spec, root):
         "noise_level_multiplier", [1.0, 1.0])]
     speckle_delta = [float(v) for v in acoustic_variation.get(
         "speckle_strength_delta", [0.0, 0.0])]
-    display_variant_range = [float(v) for v in acoustic_variation.get(
-        "display_variant_dynamic_range_db", [0.0, 0.0])]
     if not 0.0 < reach_fraction <= 1.0:
         raise SystemExit("large_dataset_profile.sensor_geometry.beam_reach_fraction은 0~1이어야 합니다.")
     if not 0.0 < min_altitude_to_range < 1.0:
@@ -405,9 +402,6 @@ def build_plan(spec, root):
         raise SystemExit("noise_level_multiplier는 [0 이상 min, max]여야 합니다.")
     if len(speckle_delta) != 2 or speckle_delta[0] > speckle_delta[1]:
         raise SystemExit("speckle_strength_delta는 [min, max]여야 합니다.")
-    if (len(display_variant_range) != 2 or display_variant_range[0] < 0.0
-            or display_variant_range[0] > display_variant_range[1]):
-        raise SystemExit("display_variant_dynamic_range_db는 [0 이상 min, max]여야 합니다.")
     half_vertical = float(sensor["vertical_beam_deg"]) / 2.0
     if vertical_ray_span < float(sensor["vertical_beam_deg"]):
         raise SystemExit("vertical_ray_span_deg는 nominal vertical_beam_deg보다 작을 수 없습니다.")
@@ -549,14 +543,12 @@ def build_plan(spec, root):
         scene_noise_level = round(noise_level * vrng.uniform(*noise_multiplier), 4)
         scene_speckle_strength = round(min(1.0, max(
             0.0, speckle_strength + vrng.uniform(*speckle_delta))), 4)
-        scene_display_variant = round(vrng.uniform(*display_variant_range), 2)
         sv["range_min_m"] = range_min
         sv["range_max_m"] = range_max
         sv["range_altitude_cap_m"] = round(range_altitude_cap, 1)
         sv["track_dx_m"] = track_dx
         sv["noise_level"] = scene_noise_level
         sv["speckle_strength"] = scene_speckle_strength
-        sv["display_variant_dynamic_range_db"] = scene_display_variant
         sv["range_reference_altitude_m"] = round(range_reference_altitude, 2)
         sv["beam_reach_m"] = round(beam_reach, 1)
         sv["range_envelope_source"] = envelope_source
@@ -599,7 +591,6 @@ def build_plan(spec, root):
             "range_max_m": range_max, "beam_reach_m": round(beam_reach, 1),
             "range_altitude_cap_m": round(range_altitude_cap, 1),
             "track_dx_m": track_dx,
-            "display_variant_dynamic_range_db": scene_display_variant,
             "range_envelope_source": envelope_source,
             "range_footprint_samples": footprint_samples,
             "objects": len(scene["objects"]),
@@ -668,7 +659,7 @@ def _write_contract(root, spec, sensor, scene_cfg, catalog, scenes, rows):
     _atomic_json(root / "plan.json", rows)
     if rows:
         with (root / "plan.csv").open("w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=list(rows[0]))
+            w = csv.DictWriter(f, fieldnames=list(rows[0]), lineterminator="\n")
             w.writeheader(); w.writerows(rows)
     (root / "README.txt").write_text(
         "SSS 데이터셋 실행 루트\n\n"
@@ -753,7 +744,7 @@ def _run_one(root, manifest, row, fixed, platform, outputs):
     # their manifest still carries the original survey geometry.
     for key in ("depression_deg", "range_min_m", "range_max_m",
                 "range_reference_altitude_m", "track_dx_m", "noise_level",
-                "speckle_strength", "display_variant_dynamic_range_db"):
+                "speckle_strength"):
         if key in row:
             overrides[key] = float(row[key])
     cmd = [sys.executable, "-u", str(ACQUIRE), platform,
