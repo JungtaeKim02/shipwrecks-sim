@@ -1799,6 +1799,157 @@ index e559f8e5..91093d7f 100644
 @@ -73 +76 @@ void USurfaceVesselControlPD::Execute(
 -	// Empty out physics controller
 +
+diff --git a/engine/Source/Holodeck/ClientCommands/Private/ClearSceneObjectsCommand.cpp b/engine/Source/Holodeck/ClientCommands/Private/ClearSceneObjectsCommand.cpp
+new file mode 100644
+index 00000000..8f8af560
+--- /dev/null
++++ b/engine/Source/Holodeck/ClientCommands/Private/ClearSceneObjectsCommand.cpp
+@@ -0,0 +1,32 @@
++#include "ClearSceneObjectsCommand.h"
++#include "Holodeck.h"
++
++#include "SpawnSceneObjectCommand.h"
++#include "EngineUtils.h"
++#include "Engine/StaticMeshActor.h"
++
++void UClearSceneObjectsCommand::Execute() {
++	UWorld* World = Target->GetWorld();
++	if (World == nullptr) {
++		UE_LOG(LogHolodeck, Error, TEXT("ClearSceneObjectsCommand: no world."));
++		return;
++	}
++
++	const FName Tag = FName(USpawnSceneObjectCommand::SceneObjectTag());
++	TArray<AActor*> ToDestroy;
++	for (TActorIterator<AStaticMeshActor> It(World); It; ++It) {
++		if (It->ActorHasTag(Tag)) {
++			ToDestroy.Add(*It);
++		}
++	}
++
++	for (AActor* Actor : ToDestroy) {
++		Actor->Destroy();
++	}
++
++	UE_LOG(
++		LogHolodeck,
++		Log,
++		TEXT("ClearSceneObjectsCommand: destroyed %d scene object(s)."),
++		ToDestroy.Num());
++}
+diff --git a/engine/Source/Holodeck/ClientCommands/Private/SpawnSceneObjectCommand.cpp b/engine/Source/Holodeck/ClientCommands/Private/SpawnSceneObjectCommand.cpp
+new file mode 100644
+index 00000000..0ab5f2a3
+--- /dev/null
++++ b/engine/Source/Holodeck/ClientCommands/Private/SpawnSceneObjectCommand.cpp
+@@ -0,0 +1,67 @@
++#include "SpawnSceneObjectCommand.h"
++#include "Holodeck.h"
++
++#include "Components/StaticMeshComponent.h"
++#include "Engine/StaticMesh.h"
++#include "Engine/StaticMeshActor.h"
++#include "Math/RotationMatrix.h"
++
++void USpawnSceneObjectCommand::Execute() {
++	if (NumberParams.size() < 10 || StringParams.empty()) {
++		UE_LOG(LogHolodeck, Error, TEXT("SpawnSceneObjectCommand: invalid parameters."));
++		return;
++	}
++
++	UWorld* World = Target->GetWorld();
++	if (World == nullptr) {
++		UE_LOG(LogHolodeck, Error, TEXT("SpawnSceneObjectCommand: no world."));
++		return;
++	}
++
++	const FString MeshPath = FString(StringParams[0].c_str());
++	UStaticMesh* Mesh = LoadObject<UStaticMesh>(nullptr, *MeshPath);
++	if (Mesh == nullptr) {
++		UE_LOG(LogHolodeck, Error, TEXT("SpawnSceneObjectCommand: could not load static mesh '%s'."), *MeshPath);
++		return;
++	}
++
++	FVector Location(NumberParams[0], NumberParams[1], NumberParams[2]);
++	Location = ConvertLinearVector(Location, ClientToUE);
++	FRotator Rotation(NumberParams[4], NumberParams[5], NumberParams[3]);
++	Rotation = ConvertAngularVector(Rotation, ClientToUE);
++
++	FActorSpawnParameters SpawnParams;
++	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
++	AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>(
++		AStaticMeshActor::StaticClass(), Location, Rotation, SpawnParams);
++	if (Actor == nullptr) {
++		UE_LOG(LogHolodeck, Error, TEXT("SpawnSceneObjectCommand: spawn failed."));
++		return;
++	}
++
++	UStaticMeshComponent* MeshComponent = Actor->GetStaticMeshComponent();
++	MeshComponent->SetMobility(EComponentMobility::Movable);
++	MeshComponent->SetStaticMesh(Mesh);
++	MeshComponent->SetWorldScale3D(FVector(NumberParams[6], NumberParams[7], NumberParams[8]));
++	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
++	MeshComponent->SetCollisionProfileName(TEXT("BlockAll"));
++	MeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
++
++	const float BurialRatio = FMath::Clamp(NumberParams[9], 0.0f, 1.0f);
++	if (BurialRatio > 0.0f) {
++		const FVector Ext = Mesh->GetBounds().BoxExtent * FMath::Abs(NumberParams[8]);
++		const FMatrix Rot = FRotationMatrix(Rotation);
++		const float HeightCm = 2.0f * (FMath::Abs(Rot.M[0][2]) * Ext.X
++			+ FMath::Abs(Rot.M[1][2]) * Ext.Y
++			+ FMath::Abs(Rot.M[2][2]) * Ext.Z);
++		Actor->SetActorLocation(Location - FVector(0.0f, 0.0f, BurialRatio * HeightCm));
++	}
++
++	Actor->Tags.Add(FName(SceneObjectTag()));
++	for (size_t i = 1; i < StringParams.size(); ++i) {
++		const FString Tag = FString(StringParams[i].c_str());
++		if (!Tag.IsEmpty()) {
++			Actor->Tags.Add(FName(*Tag));
++		}
++	}
++}
+diff --git a/engine/Source/Holodeck/ClientCommands/Public/ClearSceneObjectsCommand.h b/engine/Source/Holodeck/ClientCommands/Public/ClearSceneObjectsCommand.h
+new file mode 100644
+index 00000000..fa228f70
+--- /dev/null
++++ b/engine/Source/Holodeck/ClientCommands/Public/ClearSceneObjectsCommand.h
+@@ -0,0 +1,13 @@
++#pragma once
++
++#include "Holodeck.h"
++#include "Command.h"
++#include "ClearSceneObjectsCommand.generated.h"
++
++UCLASS()
++class HOLODECK_API UClearSceneObjectsCommand : public UCommand {
++	GENERATED_BODY()
++
++public:
++	void Execute() override;
++};
+diff --git a/engine/Source/Holodeck/ClientCommands/Public/SpawnSceneObjectCommand.h b/engine/Source/Holodeck/ClientCommands/Public/SpawnSceneObjectCommand.h
+new file mode 100644
+index 00000000..1f1da919
+--- /dev/null
++++ b/engine/Source/Holodeck/ClientCommands/Public/SpawnSceneObjectCommand.h
+@@ -0,0 +1,15 @@
++#pragma once
++
++#include "Holodeck.h"
++#include "Command.h"
++#include "SpawnSceneObjectCommand.generated.h"
++
++UCLASS()
++class HOLODECK_API USpawnSceneObjectCommand : public UCommand {
++	GENERATED_BODY()
++
++public:
++	void Execute() override;
++
++	static const TCHAR* SceneObjectTag() { return TEXT("sss_scene_object"); }
++};
 diff --git a/engine/Source/Holodeck/ClientCommands/Private/CommandFactory.cpp b/engine/Source/Holodeck/ClientCommands/Private/CommandFactory.cpp
 index aa7e65b6..0f639c67 100644
 --- a/engine/Source/Holodeck/ClientCommands/Private/CommandFactory.cpp
