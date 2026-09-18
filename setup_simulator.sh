@@ -19,7 +19,7 @@ elif [ "$#" -gt 0 ]; then
   exit 2
 fi
 
-for command_name in git curl unzip docker "$python_bin"; do
+for command_name in git curl unzip tar docker "$python_bin"; do
   command -v "$command_name" >/dev/null 2>&1 || {
     printf '필수 명령을 찾을 수 없습니다: %s\n' "$command_name" >&2
     exit 1
@@ -46,12 +46,18 @@ else
 fi
 
 mkdir -p "$project_root/downloads"
+if [ -f "$asset_archive" ] && ! unzip -tqq "$asset_archive" >/dev/null 2>&1; then
+  invalid_archive="${asset_archive}.invalid.$(date +%Y%m%d-%H%M%S)"
+  mv "$asset_archive" "$invalid_archive"
+  printf '[2/6] 손상된 기존 3D 자산 archive를 보관했습니다: %s\n' "$invalid_archive"
+fi
 if ! find "$project_root/data/objects" -type f \( -iname '*.fbx' -o -iname '*.obj' \) -print -quit | grep -q .; then
   if [ ! -f "$asset_archive" ]; then
     printf '[2/6] 3D 자산을 GitHub Release에서 받습니다.\n'
     curl -fL --retry 3 \
       "https://github.com/JungtaeKim02/shipwrecks-sim/releases/download/$release_tag/$asset_name" \
-      -o "$asset_archive"
+      -o "${asset_archive}.part"
+    mv "${asset_archive}.part" "$asset_archive"
   fi
   unzip -q -o "$asset_archive" -d "$project_root"
 fi
@@ -72,11 +78,17 @@ if [ "$prepare_only" = true ]; then
 fi
 
 ispc_archive="$project_root/vendor/ispc-v1.18.0-linux.tar.gz"
+if [ -f "$ispc_archive" ] && ! tar -tzf "$ispc_archive" >/dev/null 2>&1; then
+  invalid_archive="${ispc_archive}.invalid.$(date +%Y%m%d-%H%M%S)"
+  mv "$ispc_archive" "$invalid_archive"
+  printf '[4/6] 손상된 기존 ISPC archive를 보관했습니다: %s\n' "$invalid_archive"
+fi
 if [ ! -f "$ispc_archive" ]; then
   mkdir -p "$project_root/vendor"
   curl -fL --retry 3 \
     https://github.com/ispc/ispc/releases/download/v1.18.0/ispc-v1.18.0-linux.tar.gz \
-    -o "$ispc_archive"
+    -o "${ispc_archive}.part"
+  mv "${ispc_archive}.part" "$ispc_archive"
 fi
 
 printf '[4/6] Unreal Engine 컨테이너로 시뮬레이터를 빌드합니다.\n'
@@ -94,7 +106,13 @@ fi
 
 world_dir=${HOLOOCEAN_WORLD_DIR:-"${XDG_DATA_HOME:-$HOME/.local/share}/holoocean/2.4.0/worlds/TestWorlds"}
 if [ -e "$world_dir" ]; then
-  backup_dir="${world_dir}.backup.$(date +%Y%m%d-%H%M%S)"
+  backup_base="${world_dir}.backup.$(date +%Y%m%d-%H%M%S)"
+  backup_dir="$backup_base"
+  backup_suffix=1
+  while [ -e "$backup_dir" ]; do
+    backup_dir="${backup_base}.${backup_suffix}"
+    backup_suffix=$((backup_suffix + 1))
+  done
   mv "$world_dir" "$backup_dir"
   printf '기존 월드는 다음 위치에 보관했습니다: %s\n' "$backup_dir"
 fi

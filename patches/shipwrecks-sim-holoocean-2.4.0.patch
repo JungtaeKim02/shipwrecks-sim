@@ -6200,3 +6200,61 @@ index 00000000..00000000
 +	}();
 +	return Terrain;
 +}
+diff --git a/engine/Build/ContinuousIntegration/package_ue5_project.sh b/engine/Build/ContinuousIntegration/package_ue5_project.sh
+index 00e3728e..b4d9a7b2 100644
+--- a/engine/Build/ContinuousIntegration/package_ue5_project.sh
++++ b/engine/Build/ContinuousIntegration/package_ue5_project.sh
+@@ -25,4 +25,11 @@ echo "👉 Pre-compiling ISPC files for packaging..."
+ ISPC_PATH="/home/ue4/UnrealEngine/Engine/Binaries/ThirdParty/Intel/ISPC/Linux/ispc"
+ ISPC_SOURCE="/drone/src/engine/Source/Holodeck/FFTWaves/Private/OceanFFTCalculator.ispc"
+ 
++restore_ispc_source() {
++    if [ -f "${ISPC_SOURCE}.hidden" ]; then
++        mv "${ISPC_SOURCE}.hidden" "$ISPC_SOURCE"
++    fi
++}
++trap restore_ispc_source EXIT
++
+ if [ -f "$ISPC_PATH" ] && [ -f "$ISPC_SOURCE" ]; then
+@@ -72,6 +72,8 @@ else
+ fi
+ 
+ # Package it up
++rm -rf dist
++mkdir -p dist
+ echo "👉 Starting Packaging Process..."
+ ue4 package Development
+ 
+@@ -90,10 +92,7 @@ if [ "$code" -ne 0 ]; then
+     exit $code
+ fi
+ 
+-# Create dist directory if it doesn't exist (UE might have already created it)
+-if [ ! -d "dist" ]; then
+-    mkdir dist
+-fi
++mkdir -p dist
+ 
+ # Open up the permissions in the output
+ chmod 777 dist
+@@ -116,14 +116,14 @@ echo "👉 Compressing contents into $commit.zip..."
+ zip -r "$commit.zip" *
+ 
+ echo "👉 Deleting config files for $commit..."
+-rm *.json # This may be removable? Or we may want to add in removing the csv files too.
++rm -f -- *.json
+ cd ..
+ 
+ echo "👉 Moving $commit.zip into final folder..."
+-mkdir final
+-mkdir tag
+-mv "dist/$commit.zip" final
+-cp final/$commit.zip final/latest.zip
+-cp final/$commit.zip tag/Linux.zip
++mkdir -p final tag
++rm -f -- "final/$commit.zip" "final/latest.zip" "tag/Linux.zip"
++mv -f "dist/$commit.zip" "final/$commit.zip"
++cp -f "final/$commit.zip" "final/latest.zip"
++cp -f "final/$commit.zip" "tag/Linux.zip"
+ 
+ echo "👉 Done packaging package $commit"
